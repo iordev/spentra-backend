@@ -49,3 +49,5 @@ prisma/dev.db
 # IDEs
 .idea/
 .vscode/
+
+/generated/prisma

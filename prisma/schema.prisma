@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model Permission {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String @default("-")
+
+  // relationships - implicit many-to-many
+  roles Role[]
+
+  // timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Role {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String @default("-")
+
+  // relationships
+  permissions Permission[] // implicit many-to-many
+  users       User[]
+
+  // timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Occupation {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  // relationships
+  users User[]
+
+  // timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model User {
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  username   String? @unique // optional, unique username
+  fullName   String // optional display name
+  firstName  String // optional
+  middleName String? // optional
+  lastName   String // optional
+  suffix     String? // optional (Jr., Sr., III, etc.)
+  password   String? // optional if using OAuth
+
+  // profile / demographic info
+  birthday DateTime?
+  gender   Gender    @default(MALE) // enum with default
+  age      Int?
+
+  // relationships
+  roleId       Int
+  role         Role       @relation(fields: [roleId], references: [id])
+  occupationId Int
+  occupation   Occupation @relation(fields: [occupationId], references: [id])
+  auths        UserAuth[] // OAuth logins
+
+  // timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model UserAuth {
+  id           Int     @id @default(autoincrement())
+  provider     String // "google", "facebook", "microsoft"
+  providerId   String  @unique // unique ID from the provider
+  accessToken  String? // optional token if you want to store
+  refreshToken String? // optional refresh token
+  userId       Int
+  user         User    @relation(fields: [userId], references: [id])
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
