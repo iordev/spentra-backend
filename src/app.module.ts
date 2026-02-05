@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
+import { PermissionsModule } from './modules/v1/permissions/permissions.module';
+import { RolesModule } from './modules/v1/roles/roles.module';
 
 @Module({
   imports: [
@@ -8,6 +10,8 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     PrismaModule,
+    PermissionsModule,
+    RolesModule,
   ],
   controllers: [],
   providers: [],

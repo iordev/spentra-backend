@@ -21,7 +21,8 @@ enum Gender {
 model Permission {
   id          Int    @id @default(autoincrement())
   name        String @unique
-  description String @default("-")
+  description String
+  group       String
 
   // relationships - implicit many-to-many
   roles Role[]
@@ -33,10 +34,9 @@ model Permission {
 }
 
 model Role {
-  id          Int    @id @default(autoincrement())
-  name        String @unique
-  description String @default("-")
-
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String
   // relationships
   permissions Permission[] // implicit many-to-many
   users       User[]
