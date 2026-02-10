@@ -1,9 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { GetPermissionDto, PermissionDto } from './dto';
+import { PermissionDto } from './dto';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { Prisma } from '@prisma/client';
+import { PaginationDto, Status } from '../../../common/dto';
+import { Permission, Prisma } from '@prisma/client';
+import { PaginationService } from '../../../common/services';
+import type { Request } from 'express';
 
 type PermissionResponse = {
   id: number;
@@ -27,49 +30,42 @@ export class PermissionsService {
 
   private readonly timezone = 'Asia/Manila';
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly paginationService: PaginationService,
+  ) {}
+  findAllPermissions(query: PaginationDto, request: Request) {
+    const where: Prisma.PermissionWhereInput = {};
 
-  async findAllPermissions(dto: GetPermissionDto) {
-    const { status, page, limit, search, sortBy, sortOrder } = dto;
-    const whereClause: Prisma.PermissionWhereInput = {};
-
-    // Filter by status
-    if (status === 'Active') {
-      whereClause.deletedAt = null;
-    } else if (status === 'Inactive') {
-      whereClause.deletedAt = { not: null };
+    // Status filter
+    if (query.status === Status.ACTIVE) {
+      where.deletedAt = null;
+    } else if (query.status === Status.INACTIVE) {
+      where.deletedAt = { not: null };
     }
 
-    // Add search functionality (optional)
-    if (search) {
-      whereClause.OR = [{ name: { contains: search, mode: 'insensitive' } }];
+    // Search filter
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+      ];
     }
 
-    const orderByField = sortBy || 'updatedAt';
-    const orderByDirection = sortOrder || 'desc';
+    const orderBy = query.sortBy
+      ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
+      : { updatedAt: 'desc' };
 
-    const permissions = await this.prisma.permission.findMany({
-      where: whereClause,
-      select: this.permissionSelect,
-      orderBy: {
-        [orderByField]: orderByDirection,
+    return this.paginationService.paginate<Prisma.PermissionSelect, Permission>(
+      this.prisma.permission,
+      query,
+      request,
+      {
+        where,
+        orderBy,
+        select: this.permissionSelect,
       },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    const total = await this.prisma.permission.count({ where: whereClause });
-
-    return {
-      message: 'Permissions retrieved successfully',
-      result: permissions.map((permission) => this.formatPermission(permission)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    );
   }
 
   async createPermission(dto: PermissionDto) {

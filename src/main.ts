@@ -9,6 +9,7 @@ async function bootstrap() {
     new ValidationPipe({
       stopAtFirstError: true,
       whitelist: true,
+      transform: true,
       // forbidNonWhitelisted: true,
       // exceptionFactory: (errors) => {
       //   // Get the first error from the first field

@@ -9,18 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import { GetPermissionDto, PermissionDto } from './dto';
+import { PermissionDto } from './dto';
+import { PaginationDto } from '../../../common/dto';
+import express from 'express';
 
 @Controller('api/v1/permissions')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  async getAllPermissions(@Query() query: GetPermissionDto) {
-    return this.permissionsService.findAllPermissions(query);
+  async getAllPermissions(@Query() query: PaginationDto, @Req() request: express.Request) {
+    return this.permissionsService.findAllPermissions(query, request);
   }
 
   @Post()
