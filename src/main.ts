@@ -25,8 +25,14 @@ async function bootstrap() {
       exceptionFactory: (errors) => {
         const messages = errors.map((error) => {
           const constraints = error.constraints || {};
-          return `${error.property} has wrong value ${error.value}, ${Object.values(constraints).join(', ')}`;
+
+          // Join all constraint messages for this field
+          const message = Object.values(constraints).join(', ');
+
+          // Capitalize first letter
+          return message.charAt(0).toUpperCase() + message.slice(1);
         });
+
         return new BadRequestException(messages.join('. '));
       },
     }),

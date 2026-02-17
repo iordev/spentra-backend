@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { PermissionDto } from './dto';
-import { PaginationDto } from '../../../common/dto';
 import express from 'express';
+import { PaginationDto } from '../../../common/pagination/dto';
 
 @Controller('api/v1/permissions')
 export class PermissionsController {
@@ -23,6 +23,11 @@ export class PermissionsController {
   @Get()
   async getAllPermissions(@Query() query: PaginationDto, @Req() request: express.Request) {
     return this.permissionsService.findAllPermissions(query, request);
+  }
+
+  @Get(':id')
+  getPermissionById(@Param('id', ParseIntPipe) id: number) {
+    return this.permissionsService.findPermissionById(id);
   }
 
   @Post()

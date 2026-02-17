@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
-import { PaginationModule } from '../../../common/services';
+import { PaginationModule } from '../../../common/pagination';
 
 @Module({
   imports: [PaginationModule],

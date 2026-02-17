@@ -3,10 +3,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PermissionDto } from './dto';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { PaginationDto, Status } from '../../../common/dto';
-import { Permission, Prisma } from '@prisma/client';
-import { PaginationService } from '../../../common/services';
+import { Prisma } from '@prisma/client';
+
 import type { Request } from 'express';
+import { PaginationDto, Status } from '../../../common/pagination/dto';
+import { PaginatedResult, PaginationService } from '../../../common/pagination';
 
 type PermissionResponse = {
   id: number;
@@ -15,6 +16,15 @@ type PermissionResponse = {
   group: string | null;
   updatedAt: Date;
   deletedAt?: Date | null;
+};
+
+type FormattedPermission = {
+  id: number;
+  name: string;
+  description: string | null;
+  group: string | null;
+  updatedAt: string;
+  deletedAt?: string | null;
 };
 
 @Injectable()
@@ -34,29 +44,30 @@ export class PermissionsService {
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
   ) {}
-  findAllPermissions(query: PaginationDto, request: Request) {
+
+  async findAllPermissions(
+    query: PaginationDto,
+    request: Request,
+  ): Promise<PaginatedResult<FormattedPermission>> {
     const where: Prisma.PermissionWhereInput = {};
 
-    // Status filter
     if (query.status === Status.ACTIVE) {
       where.deletedAt = null;
     } else if (query.status === Status.INACTIVE) {
       where.deletedAt = { not: null };
     }
 
-    // Search filter
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-      ];
+      where.OR = [{ name: { contains: query.search, mode: 'insensitive' } }];
     }
 
-    const orderBy = query.sortBy
+    // Explicitly type orderBy to avoid any
+    const orderBy: Prisma.PermissionOrderByWithRelationInput = query.sortBy
       ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
       : { updatedAt: 'desc' };
 
-    return this.paginationService.paginate<Prisma.PermissionSelect, Permission>(
+    // Call paginate
+    const paginated = await this.paginationService.paginate(
       this.prisma.permission,
       query,
       request,
@@ -64,8 +75,34 @@ export class PermissionsService {
         where,
         orderBy,
         select: this.permissionSelect,
+        message: 'Your permissions are now displayed.',
       },
     );
+
+    // Format dates using map
+    const formattedData = paginated.data.map((permission) =>
+      this.formatPermission(permission as PermissionResponse),
+    );
+
+    return {
+      ...paginated,
+      data: formattedData,
+    };
+  }
+
+  async findPermissionById(permissionId: number) {
+    const permission = await this.prisma.permission.findUnique({
+      where: { id: permissionId },
+    });
+
+    if (!permission) {
+      throw new NotFoundException(`Oops! The permission you’re looking for doesn’t exist.`);
+    }
+
+    return {
+      message: 'Here are the details of the permission.',
+      result: this.formatPermission(permission),
+    };
   }
 
   async createPermission(dto: PermissionDto) {
@@ -75,7 +112,7 @@ export class PermissionsService {
       });
 
       if (existingPermission) {
-        throw new ConflictException(`The permission name ${dto.name} already exists`);
+        throw new ConflictException(`The permission ${dto.name} already exists`);
       }
 
       const permission = await tx.permission.create({
@@ -84,7 +121,7 @@ export class PermissionsService {
       });
 
       return {
-        message: 'Permission created successfully',
+        message: 'Great! Your permission is ready to go.',
         result: this.formatPermission(permission),
       };
     });
@@ -97,7 +134,7 @@ export class PermissionsService {
       });
 
       if (!existingPermission) {
-        throw new NotFoundException(`Permission with id ${permissionId} not found`);
+        throw new NotFoundException(`Oops! The permission you’re looking for doesn’t exist.`);
       }
 
       // Check if any changes were made
@@ -105,7 +142,7 @@ export class PermissionsService {
 
       if (!hasChanges) {
         return {
-          message: 'No changes detected',
+          message: "Everything's already up to date!",
         };
       }
 
@@ -116,7 +153,7 @@ export class PermissionsService {
         });
 
         if (duplicateName) {
-          throw new ConflictException(`The permission name ${dto.name} already exists`);
+          throw new ConflictException(`The permission ${dto.name} already exists`);
         }
       }
 
@@ -127,7 +164,7 @@ export class PermissionsService {
       });
 
       return {
-        message: 'Permission updated successfully',
+        message: 'Update complete — your permission is current.',
         result: this.formatPermission(updatedPermission),
       };
     });
@@ -150,7 +187,7 @@ export class PermissionsService {
       });
 
       if (!existingPermission) {
-        throw new NotFoundException(`Permission with id ${permissionId} not found`);
+        throw new NotFoundException(`Oops! The permission you’re looking for doesn’t exist.`);
       }
 
       // Check if permission is assigned to any active roles
