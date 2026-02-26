@@ -4,8 +4,6 @@ import { PermissionDto } from './dto';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Prisma } from '@prisma/client';
-
-import type { Request } from 'express';
 import { PaginationDto, Status } from '../../../common/pagination/dto';
 import { PaginatedResult, PaginationService } from '../../../common/pagination';
 
@@ -47,7 +45,7 @@ export class PermissionsService {
 
   async findAllPermissions(
     query: PaginationDto,
-    request: Request,
+    baseUrl: string,
   ): Promise<PaginatedResult<FormattedPermission>> {
     const where: Prisma.PermissionWhereInput = {};
 
@@ -70,12 +68,11 @@ export class PermissionsService {
     const paginated = await this.paginationService.paginate(
       this.prisma.permission,
       query,
-      request,
+      baseUrl,
       {
         where,
         orderBy,
         select: this.permissionSelect,
-        message: 'Your permissions are now displayed.',
       },
     );
 
@@ -99,10 +96,7 @@ export class PermissionsService {
       throw new NotFoundException(`Oops! The permission you’re looking for doesn’t exist.`);
     }
 
-    return {
-      message: 'Here are the details of the permission.',
-      result: this.formatPermission(permission),
-    };
+    return this.formatPermission(permission);
   }
 
   async createPermission(dto: PermissionDto) {
@@ -120,14 +114,18 @@ export class PermissionsService {
         select: this.permissionSelect,
       });
 
-      return {
-        message: 'Great! Your permission is ready to go.',
-        result: this.formatPermission(permission),
-      };
+      // return {
+      //   message: 'Great! Your permission is ready to go.',
+      //   result: this.formatPermission(permission),
+      // };
+      return this.formatPermission(permission);
     });
   }
 
-  async updatePermission(permissionId: number, dto: PermissionDto) {
+  async updatePermission(
+    permissionId: number,
+    dto: PermissionDto,
+  ): Promise<{ permission: FormattedPermission; updated: boolean }> {
     return this.prisma.$transaction(async (tx) => {
       const existingPermission = await tx.permission.findUnique({
         where: { id: permissionId },
@@ -137,26 +135,28 @@ export class PermissionsService {
         throw new NotFoundException(`Oops! The permission you’re looking for doesn’t exist.`);
       }
 
-      // Check if any changes were made
-      const hasChanges = Object.keys(dto).some((key) => dto[key] !== existingPermission[key]);
-
-      if (!hasChanges) {
-        return {
-          message: "Everything's already up to date!",
-        };
-      }
-
-      // Check for duplicate name (only if name is changing)
-      if (dto.name !== existingPermission.name) {
+      // Check for duplicate name only if it's being changed
+      if (dto.name && dto.name !== existingPermission.name) {
         const duplicateName = await tx.permission.findUnique({
           where: { name: dto.name },
         });
-
         if (duplicateName) {
           throw new ConflictException(`The permission ${dto.name} already exists`);
         }
       }
 
+      // Determine if any field actually changed
+      const hasChanges = Object.keys(dto).some((key) => dto[key] !== existingPermission[key]);
+
+      if (!hasChanges) {
+        // No changes – return existing permission and updated = false
+        return {
+          permission: this.formatPermission(existingPermission),
+          updated: false,
+        };
+      }
+
+      // Apply updates
       const updatedPermission = await tx.permission.update({
         where: { id: permissionId },
         data: dto,
@@ -164,8 +164,8 @@ export class PermissionsService {
       });
 
       return {
-        message: 'Update complete — your permission is current.',
-        result: this.formatPermission(updatedPermission),
+        permission: this.formatPermission(updatedPermission),
+        updated: true,
       };
     });
   }
@@ -205,10 +205,7 @@ export class PermissionsService {
         select: this.permissionSelect,
       });
 
-      return {
-        message: 'Permission archived successfully',
-        result: this.formatPermission(archivedPermission),
-      };
+      return this.formatPermission(archivedPermission);
     });
   }
 

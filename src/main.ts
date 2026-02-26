@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters';
+import { TransformInterceptor } from './common/interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,23 +24,27 @@ async function bootstrap() {
       //   });
       // },
       exceptionFactory: (errors) => {
-        const messages = errors.map((error) => {
-          const constraints = error.constraints || {};
+        if (!errors.length) return null;
 
-          // Join all constraint messages for this field
-          const message = Object.values(constraints).join(', ');
+        // Take the first error
+        const firstError = errors[0];
+        const constraints = firstError.constraints || {};
 
-          // Capitalize first letter
-          return message.charAt(0).toUpperCase() + message.slice(1);
-        });
+        // Take the first constraint message
+        const firstConstraintMessage = Object.values(constraints)[0] || 'Invalid input';
 
-        return new BadRequestException(messages.join('. '));
+        // Capitalize the first letter
+        const message =
+          firstConstraintMessage.charAt(0).toUpperCase() + firstConstraintMessage.slice(1);
+
+        return new BadRequestException(message);
       },
     }),
   );
 
   // Global Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);

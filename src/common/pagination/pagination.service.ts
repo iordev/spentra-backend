@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Request } from 'express';
 
 /*
 |--------------------------------------------------------------------------
@@ -55,7 +54,6 @@ export interface PaginationQuery {
 }
 
 export interface PaginatedResult<T> {
-  message: string | null;
   data: T[];
   meta: {
     total: number;
@@ -82,13 +80,12 @@ export class PaginationService {
   async paginate<TSelect, T, M extends PrismaModelDelegate<TSelect, T>>(
     model: M,
     query: PaginationQuery,
-    request: Request,
+    baseUrl: string,
     options?: {
       where?: WhereInput<M>;
       orderBy?: OrderByInput<M>;
       select?: TSelect;
       include?: IncludeInput<M>;
-      message: string;
     },
   ): Promise<PaginatedResult<T>> {
     const page = query.page && query.page > 0 ? query.page : 1;
@@ -110,12 +107,10 @@ export class PaginationService {
 
     const lastPage = Math.ceil(total / limit);
 
-    const baseUrl = `${request.protocol}://${request.get('host')}${request.path}`;
-
+    // Build link by appending page and limit to the baseUrl
     const createLink = (p: number) => `${baseUrl}?page=${p}&limit=${limit}`;
 
     return {
-      message: options?.message || null,
       data,
       meta: {
         total,
