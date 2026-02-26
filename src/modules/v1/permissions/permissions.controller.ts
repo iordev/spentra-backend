@@ -20,8 +20,8 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Get()
-  async getAllPermissions(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
-    const data = await this.permissionsService.findAllPermissions(query, baseUrl);
+  async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
+    const data = await this.permissionsService.findAll(query, baseUrl);
     return {
       message: 'Your permissions are now displayed.',
       ...data,
@@ -29,8 +29,8 @@ export class PermissionsController {
   }
 
   @Get(':id')
-  async getPermissionById(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.permissionsService.findPermissionById(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.permissionsService.findOne(id);
     return {
       message: 'Here are the details of the permission.',
       data,
@@ -40,7 +40,7 @@ export class PermissionsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() permissionDto: PermissionDto) {
-    const data = await this.permissionsService.createPermission(permissionDto);
+    const data = await this.permissionsService.create(permissionDto);
     return {
       message: 'Great! Your permission is ready to go.',
       data,
@@ -50,10 +50,7 @@ export class PermissionsController {
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseIntPipe) id: number, @Body() permissionDto: PermissionDto) {
-    const { permission, updated } = await this.permissionsService.updatePermission(
-      id,
-      permissionDto,
-    );
+    const { permission, updated } = await this.permissionsService.update(id, permissionDto);
     const message = updated
       ? 'Update complete — your permission is current.'
       : "Everything's already up to date!";
@@ -67,7 +64,7 @@ export class PermissionsController {
   @Patch(':id/archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.permissionsService.archivePermission(id);
+    const data = await this.permissionsService.archive(id);
     return {
       message: 'Permission archived successfully.',
       data,
