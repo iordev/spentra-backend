@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ArrayUnique, IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateRoleDto {
   @IsString({ message: 'Role name must be a string.' })
@@ -9,7 +9,8 @@ export class CreateRoleDto {
   @IsNotEmpty({ message: 'Role description is required.' })
   description: string;
 
-  @IsString({ message: 'Role group must be a string.' })
-  @IsNotEmpty({ message: 'Role group is required.' })
-  group: string;
+  @IsArray({ message: 'Permissions must be an array.' })
+  @IsNumber({}, { each: true, message: 'Each permission ID must be a number.' })
+  @ArrayUnique({ message: 'Permission IDs must be unique.' })
+  permissions?: number[];
 }
