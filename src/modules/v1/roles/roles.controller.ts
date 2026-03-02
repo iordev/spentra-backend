@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -21,18 +22,20 @@ export class RolesController {
 
   @Get()
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
-    // const data = await this.rolesService.findAll(query, baseUrl);
-    // return {
-    //   message: 'Your permissions are now displayed.',
-    //   ...data,
-    // };
-
-    return this.rolesService.findAll();
+    const data = await this.rolesService.findAll(query, baseUrl);
+    return {
+      message: 'Your roles are now displayed.',
+      ...data,
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.rolesService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.rolesService.findOne(id);
+    return {
+      message: 'Here are the details of the role.',
+      data,
+    };
   }
 
   @Post()
@@ -46,12 +49,24 @@ export class RolesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
-    return this.rolesService.update(+id, updateRoleDto);
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
+    const { role, updated } = await this.rolesService.update(id, updateRoleDto);
+    const message = updated
+      ? 'Update complete — your role is current.'
+      : "Everything's already up to date!";
+
+    return {
+      data: role,
+      message,
+    };
   }
 
-  @Patch(':id')
-  archive(@Param('id') id: string) {
-    return this.rolesService.archive(+id);
+  @Patch(':id/archive')
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.rolesService.archive(id);
+    return {
+      message: 'Role has been archived successfully.',
+      data,
+    };
   }
 }

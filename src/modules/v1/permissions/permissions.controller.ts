@@ -54,7 +54,6 @@ export class PermissionsController {
     const message = updated
       ? 'Update complete — your permission is current.'
       : "Everything's already up to date!";
-
     return {
       data: permission,
       message,

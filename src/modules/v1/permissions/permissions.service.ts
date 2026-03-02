@@ -22,7 +22,7 @@ type FormattedPermission = {
   description: string | null;
   group: string | null;
   updatedAt: string;
-  deletedAt?: string | null;
+  deletedAt?: string;
 };
 
 @Injectable()
@@ -87,9 +87,10 @@ export class PermissionsService {
     };
   }
 
-  async findOne(permissionId: number) {
+  async findOne(id: number) {
     const permission = await this.prisma.permission.findUnique({
-      where: { id: permissionId },
+      where: { id },
+      select: this.permissionSelect,
     });
 
     if (!permission) {
@@ -100,31 +101,29 @@ export class PermissionsService {
   }
 
   async create(permissionDto: PermissionDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const existingPermission = await tx.permission.findUnique({
-        where: { name: permissionDto.name },
-      });
-
-      if (existingPermission) {
-        throw new ConflictException(`The permission ${permissionDto.name} already exists`);
-      }
-
-      const permission = await tx.permission.create({
-        data: permissionDto,
-        select: this.permissionSelect,
-      });
-
-      return this.formatPermission(permission);
+    const existingPermission = await this.prisma.permission.findUnique({
+      where: { name: permissionDto.name },
     });
+
+    if (existingPermission) {
+      throw new ConflictException(`The permission ${permissionDto.name} already exists`);
+    }
+
+    const permission = await this.prisma.permission.create({
+      data: permissionDto,
+      select: this.permissionSelect,
+    });
+
+    return this.formatPermission(permission);
   }
 
   async update(
-    permissionId: number,
+    id: number,
     permissionDto: PermissionDto,
   ): Promise<{ permission: FormattedPermission; updated: boolean }> {
     return this.prisma.$transaction(async (tx) => {
       const existingPermission = await tx.permission.findUnique({
-        where: { id: permissionId },
+        where: { id },
       });
 
       if (!existingPermission) {
@@ -142,7 +141,7 @@ export class PermissionsService {
       }
 
       // Determine if any field actually changed
-      const hasChanges = Object.keys(permissionDto).some(
+      const hasChanges = (Object.keys(permissionDto) as (keyof PermissionDto)[]).some(
         (key) => permissionDto[key] !== existingPermission[key],
       );
 
@@ -156,7 +155,7 @@ export class PermissionsService {
 
       // Apply updates
       const updatedPermission = await tx.permission.update({
-        where: { id: permissionId },
+        where: { id },
         data: permissionDto,
         select: this.permissionSelect,
       });
@@ -168,11 +167,11 @@ export class PermissionsService {
     });
   }
 
-  async archive(permissionId: number) {
+  async archive(id: number) {
     return this.prisma.$transaction(async (tx) => {
       const existingPermission = await tx.permission.findUnique({
         where: {
-          id: permissionId,
+          id,
           deletedAt: null,
         },
         include: {
@@ -196,7 +195,7 @@ export class PermissionsService {
       }
 
       const archivedPermission = await tx.permission.update({
-        where: { id: permissionId },
+        where: { id },
         data: {
           deletedAt: new Date(),
         },

@@ -19,8 +19,6 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
 
     return next.handle().pipe(
       map((controllerReturned) => {
-        // If the controller returned an object with 'data' and optional 'message', spread it.
-        // Otherwise, wrap the returned value as 'data'.
         const data = controllerReturned?.data ?? controllerReturned;
         const message = controllerReturned?.message ?? 'Request successful';
 
@@ -29,6 +27,8 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
           statusCode,
           message,
           data,
+          ...(controllerReturned?.meta && { meta: controllerReturned.meta }),
+          ...(controllerReturned?.links && { links: controllerReturned.links }),
           timestamp: new Date().toISOString(),
         };
       }),
