@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
-import { PermissionsModule } from './modules/v1/permissions/permissions.module';
-import { RolesModule } from './modules/v1/roles/roles.module';
-import { UsersModule } from './modules/v1/users/users.module';
-import { OccupationsModule } from './modules/v1/occupations/occupations.module';
+import { PermissionModule } from './modules/v1/permission/permission.module';
+import { RoleModule } from './modules/v1/role/role.module';
+import { UserModule } from './modules/v1/user/user.module';
+import { OccupationModule } from './modules/v1/occupation/occupation.module';
+import { CountryModule } from './modules/v1/country/country.module';
+import { TimezoneModule } from './modules/v1/timezone/timezone.module';
+import { CurrencyModule } from './modules/v1/currency/currency.module';
 
 @Module({
   imports: [
@@ -12,10 +15,13 @@ import { OccupationsModule } from './modules/v1/occupations/occupations.module';
       isGlobal: true,
     }),
     PrismaModule,
-    PermissionsModule,
-    RolesModule,
-    UsersModule,
-    OccupationsModule,
+    PermissionModule,
+    RoleModule,
+    UserModule,
+    OccupationModule,
+    CountryModule,
+    TimezoneModule,
+    CurrencyModule,
   ],
   controllers: [],
   providers: [],

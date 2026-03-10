@@ -18,6 +18,54 @@ enum Gender {
   FEMALE
 }
 
+enum AuthProvider {
+  GOOGLE
+  FACEBOOK
+  MICROSOFT
+  // add more as needed
+  // add more as needed
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM // follow system settings
+}
+
+// Lookup tables for user preferences
+model Currency {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // e.g., "USD"
+  name      String // e.g., "US Dollar"
+  symbol    String // e.g., "$"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users User[] // users who prefer this currency
+}
+
+model Timezone {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique // e.g., "America/New_York"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users User[] // users in this timezone
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // ISO 3166-1 alpha-2, e.g., "US"
+  name      String // e.g., "United States"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users User[] // users from this country
+}
+
 model Permission {
   id          Int    @id @default(autoincrement())
   name        String @unique
@@ -74,29 +122,55 @@ model User {
   // profile / demographic info
   birthday DateTime?
   gender   Gender    @default(MALE) // enum with default
-  age      Int?
 
-  // relationships
+  // Preferences (non-relational)
+  dateFormat String? // e.g., "MM/DD/YYYY"
+  avatarUrl  String? // profile picture URL
+  theme      Theme   @default(SYSTEM)
+
+  // Account security & verification
+  emailVerified       Boolean   @default(false)
+  verificationToken   String?
+  resetPasswordToken  String?
+  resetPasswordExpiry DateTime?
+  refreshToken        String? // store hashed refresh token
+
+  // Relations (foreign keys and their relations)
   roleId       Int
   role         Role       @relation(fields: [roleId], references: [id])
   occupationId Int
   occupation   Occupation @relation(fields: [occupationId], references: [id])
   auths        UserAuth[] // OAuth logins
 
+  // Preference relations (optional – user may not have set these yet)
+  currencyId Int?
+  currency   Currency? @relation(fields: [currencyId], references: [id])
+  timezoneId Int?
+  timezone   Timezone? @relation(fields: [timezoneId], references: [id])
+  countryId  Int?
+  country    Country?  @relation(fields: [countryId], references: [id])
+
   // timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  // Indexes for performance
+  @@index([roleId])
+  @@index([occupationId])
+  @@index([currencyId])
+  @@index([timezoneId])
+  @@index([countryId])
 }
 
 model UserAuth {
-  id           Int     @id @default(autoincrement())
-  provider     String // "google", "facebook", "microsoft"
-  providerId   String  @unique // unique ID from the provider
+  id           Int          @id @default(autoincrement())
+  provider     AuthProvider
+  providerId   String       @unique // unique ID from the provider
   accessToken  String? // optional token if you want to store
   refreshToken String? // optional refresh token
   userId       Int
-  user         User    @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
 
   // timestamps
   createdAt DateTime @default(now())
