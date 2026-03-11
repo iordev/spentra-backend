@@ -1,34 +1,75 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CurrencyService } from './currency.service';
-import { CreateCurrencyDto } from './dto/create-currency.dto';
-import { UpdateCurrencyDto } from './dto/update-currency.dto';
+import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
+import { PaginationDto } from '../../../common/pagination/dto';
+import { BaseUrl } from '../../../common/decorators';
 
-@Controller('currency')
+@Controller('api/v1/currencies')
 export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
 
-  @Post()
-  create(@Body() createCurrencyDto: CreateCurrencyDto) {
-    return this.currencyService.create(createCurrencyDto);
-  }
-
   @Get()
-  findAll() {
-    return this.currencyService.findAll();
+  async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
+    const data = await this?.currencyService?.findAll(query, baseUrl);
+    return {
+      message: 'Your currencies are now displayed.',
+      ...data,
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.currencyService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.currencyService.findOne(id);
+    return {
+      message: 'Here are the details of the currency.',
+      data,
+    };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createCurrencyDto: CreateCurrencyDto) {
+    const data = await this.currencyService.create(createCurrencyDto);
+    return {
+      message: 'Great! Your currency is ready to go.',
+      data,
+    };
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCurrencyDto: UpdateCurrencyDto) {
-    return this.currencyService.update(+id, updateCurrencyDto);
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateCurrencyDto: UpdateCurrencyDto,
+  ) {
+    const { currency, updated } = await this.currencyService.update(id, updateCurrencyDto);
+    const message = updated
+      ? 'Update complete — your currency is current.'
+      : "Everything's already up to date!";
+    return {
+      data: currency,
+      message,
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.currencyService.remove(+id);
+  @Patch(':id/archive')
+  @HttpCode(HttpStatus.OK)
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.currencyService.archive(id);
+    return {
+      message: 'Currency archived successfully.',
+      data,
+    };
   }
 }

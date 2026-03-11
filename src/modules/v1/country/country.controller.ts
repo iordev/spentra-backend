@@ -39,8 +39,12 @@ export class CountryController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCountryDto: CreateCountryDto) {
-    return this.countryService.create(createCountryDto);
+  async create(@Body() createCountryDto: CreateCountryDto) {
+    const data = await this.countryService.create(createCountryDto);
+    return {
+      message: 'Great! Your country is ready to go.',
+      data,
+    };
   }
 
   @Patch(':id')

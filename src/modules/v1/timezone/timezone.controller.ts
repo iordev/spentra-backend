@@ -1,34 +1,75 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { TimezoneService } from './timezone.service';
-import { CreateTimezoneDto } from './dto/create-timezone.dto';
-import { UpdateTimezoneDto } from './dto/update-timezone.dto';
+import { CreateTimezoneDto, UpdateTimezoneDto } from './dto';
+import { PaginationDto } from '../../../common/pagination/dto';
+import { BaseUrl } from '../../../common/decorators';
 
-@Controller('timezone')
+@Controller('api/v1/timezones')
 export class TimezoneController {
   constructor(private readonly timezoneService: TimezoneService) {}
 
-  @Post()
-  create(@Body() createTimezoneDto: CreateTimezoneDto) {
-    return this.timezoneService.create(createTimezoneDto);
-  }
-
   @Get()
-  findAll() {
-    return this.timezoneService.findAll();
+  async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
+    const data = await this?.timezoneService?.findAll(query, baseUrl);
+    return {
+      message: 'Your timezones are now displayed.',
+      ...data,
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.timezoneService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.timezoneService.findOne(id);
+    return {
+      message: 'Here are the details of the timezone.',
+      data,
+    };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createTimezoneDto: CreateTimezoneDto) {
+    const data = await this.timezoneService.create(createTimezoneDto);
+    return {
+      message: 'Great! Your timezone is ready to go.',
+      data,
+    };
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTimezoneDto: UpdateTimezoneDto) {
-    return this.timezoneService.update(+id, updateTimezoneDto);
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTimezoneDto: UpdateTimezoneDto,
+  ) {
+    const { timezone, updated } = await this.timezoneService.update(id, updateTimezoneDto);
+    const message = updated
+      ? 'Update complete — your timezone is current.'
+      : "Everything's already up to date!";
+    return {
+      data: timezone,
+      message,
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.timezoneService.remove(+id);
+  @Patch(':id/archive')
+  @HttpCode(HttpStatus.OK)
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.timezoneService.archive(id);
+    return {
+      message: 'Timezone archived successfully.',
+      data,
+    };
   }
 }
