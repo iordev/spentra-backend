@@ -1,0 +1,38 @@
+import { Gender, Theme } from '@prisma/client';
+
+export const DEFAULT_USERS = [
+  {
+    email: 'admin@spentra.com',
+    username: 'admin',
+    fullName: 'System Administrator',
+    firstName: 'System',
+    lastName: 'Administrator',
+    password: 'Admin@123',
+    gender: Gender.MALE,
+    theme: Theme.DARK,
+    emailVerified: true,
+    roleName: 'ADMIN',
+    countryName: 'Philippines',
+    timezoneName: 'Asia/Manila',
+    currencyName: 'Philippine Peso',
+    occupationName: 'Software Engineer',
+    birthDate: new Date('2000-12-31'),
+  },
+  {
+    email: 'user@spentra.com',
+    username: 'john_doe',
+    fullName: 'John Doe',
+    firstName: 'John',
+    lastName: 'Doe',
+    password: 'User@123',
+    gender: Gender.MALE,
+    theme: Theme.DARK,
+    emailVerified: true,
+    roleName: 'USER',
+    countryName: 'Philippines',
+    timezoneName: 'Asia/Manila',
+    currencyName: 'Philippine Peso',
+    occupationName: 'Software Engineer',
+    birthDate: new Date('2000-12-31'),
+  },
+];

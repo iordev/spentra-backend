@@ -21,7 +21,7 @@ export class TimezoneController {
 
   @Get()
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
-    const data = await this?.timezoneService?.findAll(query, baseUrl);
+    const data = await this.timezoneService.findAll(query, baseUrl);
     return {
       message: 'Your timezones are now displayed.',
       ...data,

@@ -6,24 +6,36 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
+import { PaginationDto } from '../../../common/pagination/dto';
+import { BaseUrl } from '../../../common/decorators';
 
 @Controller('api/v1/users')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
+    const data = await this.usersService.findAll(query, baseUrl);
+    return {
+      message: 'Your users are now displayed.',
+      ...data,
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.usersService.findOne(id);
+    return {
+      message: 'Here are the details of the user.',
+      data,
+    };
   }
 
   @Post()
