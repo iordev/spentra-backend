@@ -9,17 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CountryService } from './country.service';
 import { CreateCountryDto, UpdateCountryDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/countries')
 export class CountryController {
   constructor(private readonly countryService: CountryService) {}
 
   @Get()
+  @RequirePermissions('country:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.countryService.findAll(query, baseUrl);
     return {
@@ -28,6 +31,7 @@ export class CountryController {
     };
   }
 
+  @RequirePermissions('country:display')
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.countryService.findOne(id);
@@ -37,6 +41,7 @@ export class CountryController {
     };
   }
 
+  @RequirePermissions('country:create')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createCountryDto: CreateCountryDto) {
@@ -47,6 +52,7 @@ export class CountryController {
     };
   }
 
+  @RequirePermissions('country:update')
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseIntPipe) id: number, @Body() updateCountryDto: UpdateCountryDto) {
@@ -60,6 +66,7 @@ export class CountryController {
     };
   }
 
+  @RequirePermissions('country:archive')
   @Patch(':id/archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {

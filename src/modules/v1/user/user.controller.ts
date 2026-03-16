@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -13,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl } from '../../../common';
+import { PaginationDto } from 'src/common';
 
 @Controller('api/v1/users')
 export class UserController {
@@ -48,12 +47,25 @@ export class UserController {
     };
   }
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @HttpCode(HttpStatus.OK)
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+    const { user, updated } = await this.usersService.update(id, updateUserDto);
+    const message = updated
+      ? 'Update complete — your profile is current.'
+      : "Everything's already up to date!";
+
+    return {
+      data: user,
+      message,
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @Patch(':id/archive')
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.usersService.archive(id);
+    return {
+      message: 'User archived successfully.',
+      data,
+    };
   }
 }

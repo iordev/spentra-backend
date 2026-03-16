@@ -1,10 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateOccupationDto, UpdateOccupationDto } from './dto';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PaginatedResult, PaginationService } from '../../../common/pagination';
+import { PaginatedResult, PaginationDto, PaginationService, Status } from '../../../common';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { PaginationDto, Status } from '../../../common/pagination/dto';
 import { Prisma } from '@prisma/client';
 
 type OccupationResponse = {
@@ -34,6 +33,24 @@ export class OccupationService {
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
   ) {}
+
+  async create(createOccupationDto: CreateOccupationDto) {
+    const existingOccupation = await this.prisma.occupation.findUnique({
+      where: { name: createOccupationDto.name },
+    });
+
+    if (existingOccupation) {
+      throw new ConflictException(`The occupation ${createOccupationDto.name} already exists`);
+    }
+
+    const occupation = await this.prisma.occupation.create({
+      data: createOccupationDto,
+      select: this.occupationSelect,
+    });
+
+    return this.formatOccupation(occupation);
+  }
+
   async findAll(
     query: PaginationDto,
     baseUrl: string,
@@ -87,23 +104,6 @@ export class OccupationService {
     if (!occupation) {
       throw new NotFoundException(`Oops! The occupation you’re looking for doesn’t exist.`);
     }
-
-    return this.formatOccupation(occupation);
-  }
-
-  async create(createOccupationDto: CreateOccupationDto) {
-    const existingOccupation = await this.prisma.occupation.findUnique({
-      where: { name: createOccupationDto.name },
-    });
-
-    if (existingOccupation) {
-      throw new ConflictException(`The occupation ${createOccupationDto.name} already exists`);
-    }
-
-    const occupation = await this.prisma.occupation.create({
-      data: createOccupationDto,
-      select: this.occupationSelect,
-    });
 
     return this.formatOccupation(occupation);
   }

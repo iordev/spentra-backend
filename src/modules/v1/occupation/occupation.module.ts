@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OccupationService } from './occupation.service';
 import { OccupationController } from './occupation.controller';
-import { PaginationModule } from '../../../common/pagination';
+import { PaginationModule } from '../../../common';
 
 @Module({
   imports: [PaginationModule],

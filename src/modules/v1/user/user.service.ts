@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto } from './dto';
-import { PaginationDto, Status } from '../../../common/pagination/dto';
-import { PaginatedResult, PaginationService } from '../../../common/pagination';
+import { PaginatedResult, PaginationDto, PaginationService, Status } from '../../../common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import * as bcrypt from 'bcrypt';
+import { PrismaValidatorService } from 'src/common';
 
 type UserResponse = {
   id: number;
@@ -91,6 +91,7 @@ export class UserService {
   constructor(
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
+    private readonly prismaValidator: PrismaValidatorService,
   ) {}
   async create(createUserDto: CreateUserDto): Promise<FormattedUser> {
     const {
@@ -127,6 +128,14 @@ export class UserService {
           : 'A user with this username already exists.',
       );
     }
+
+    await this.prismaValidator.validateIds({
+      role: roleId,
+      occupation: occupationId,
+      currency: currencyId,
+      timezone: timezoneId,
+      country: countryId,
+    });
 
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
@@ -207,12 +216,190 @@ export class UserService {
     return this.formatUser(user);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+  ): Promise<{ user: FormattedUser; updated: boolean }> {
+    return this.prisma.$transaction(async (tx) => {
+      const {
+        email,
+        fullName,
+        firstName,
+        middleName,
+        lastName,
+        suffix,
+        username,
+        birthDate,
+        gender,
+        avatarUrl,
+        dateFormat,
+        theme,
+        roleId,
+        occupationId,
+        currencyId,
+        timezoneId,
+        countryId,
+      } = updateUserDto;
+
+      // Check if user exists
+      const existingUser = await tx.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID ${id} not found.`);
+      }
+
+      // Check for email/username conflicts, excluding the current user
+      if (email || username) {
+        const conflictingUser = await tx.user.findFirst({
+          where: {
+            AND: [
+              { id: { not: id } },
+              {
+                OR: [...(email ? [{ email }] : []), ...(username ? [{ username }] : [])],
+              },
+            ],
+          },
+        });
+
+        if (conflictingUser) {
+          throw new ConflictException(
+            conflictingUser.email === email
+              ? 'A user with this email already exists.'
+              : 'A user with this username already exists.',
+          );
+        }
+      }
+
+      // Only validate IDs that are being updated
+      const idsToValidate: Record<string, number | undefined> = {};
+      if (roleId !== undefined) idsToValidate.role = roleId;
+      if (occupationId !== undefined) idsToValidate.occupation = occupationId;
+      if (currencyId !== undefined) idsToValidate.currency = currencyId;
+      if (timezoneId !== undefined) idsToValidate.timezone = timezoneId;
+      if (countryId !== undefined) idsToValidate.country = countryId;
+
+      if (Object.keys(idsToValidate).length > 0) {
+        await this.prismaValidator.validateIds(idsToValidate);
+      }
+
+      // Normalize birthDate for comparison
+      const incomingBirthDate = birthDate ? new Date(birthDate).toISOString() : undefined;
+      const existingBirthDate = existingUser.birthDate
+        ? new Date(existingUser.birthDate).toISOString()
+        : null;
+
+      // Build scalar comparison map (exclude password — always rehash if provided)
+      const scalarComparisons: Partial<Record<keyof typeof updateUserDto, unknown>> = {
+        ...(email !== undefined && { email }),
+        ...(fullName !== undefined && { fullName }),
+        ...(firstName !== undefined && { firstName }),
+        ...(middleName !== undefined && { middleName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(suffix !== undefined && { suffix }),
+        ...(username !== undefined && { username }),
+        ...(birthDate !== undefined && { birthDate: incomingBirthDate }),
+        ...(gender !== undefined && { gender }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(dateFormat !== undefined && { dateFormat }),
+        ...(theme !== undefined && { theme }),
+        ...(roleId !== undefined && { roleId }),
+        ...(occupationId !== undefined && { occupationId }),
+        ...(currencyId !== undefined && { currencyId }),
+        ...(timezoneId !== undefined && { timezoneId }),
+        ...(countryId !== undefined && { countryId }),
+      };
+
+      const existingComparisons = {
+        ...existingUser,
+        birthDate: existingBirthDate,
+      };
+
+      const hasScalarChanges = (
+        Object.keys(scalarComparisons) as (keyof typeof scalarComparisons)[]
+      ).some(
+        (key) =>
+          scalarComparisons[key] !== existingComparisons[key as keyof typeof existingComparisons],
+      );
+
+      if (!hasScalarChanges) {
+        return {
+          user: this.formatUser(
+            (await tx.user.findUnique({
+              where: { id },
+              select: this.userSelect,
+            })) as UserResponse,
+          ),
+          updated: false,
+        };
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data: {
+          ...(email !== undefined && { email }),
+          ...(fullName !== undefined && { fullName }),
+          ...(firstName !== undefined && { firstName }),
+          ...(middleName !== undefined && { middleName }),
+          ...(lastName !== undefined && { lastName }),
+          ...(suffix !== undefined && { suffix }),
+          ...(username !== undefined && { username }),
+          ...(birthDate !== undefined && { birthDate: birthDate ? new Date(birthDate) : null }),
+          ...(gender !== undefined && { gender }),
+          ...(avatarUrl !== undefined && { avatarUrl }),
+          ...(dateFormat !== undefined && { dateFormat }),
+          ...(theme !== undefined && { theme }),
+          ...(roleId !== undefined && { roleId }),
+          ...(occupationId !== undefined && { occupationId }),
+          ...(currencyId !== undefined && { currencyId }),
+          ...(timezoneId !== undefined && { timezoneId }),
+          ...(countryId !== undefined && { countryId }),
+        },
+        select: this.userSelect,
+      });
+
+      return {
+        user: this.formatUser(updatedUser as UserResponse),
+        updated: true,
+      };
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  archive(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({
+        where: {
+          id,
+          deletedAt: null,
+        },
+        // include: {
+        //   users: {
+        //     where: {
+        //       deletedAt: null,
+        //     },
+        //   },
+        // },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`Oops! The user you’re looking for doesn’t exist.`);
+      }
+
+      // if (existingUser.users.length > 0) {
+      //   throw new ConflictException(`The user you’re trying to archive is currently being used.`);
+      // }
+
+      const archivedUser = await tx.user.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+        },
+        select: this.userSelect,
+      });
+
+      return this.formatUser(archivedUser as UserResponse);
+    });
   }
 
   private formatUser(user: UserResponse): FormattedUser {

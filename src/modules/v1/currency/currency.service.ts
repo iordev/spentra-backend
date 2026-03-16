@@ -1,8 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PaginatedResult, PaginationService } from '../../../common/pagination';
-import { PaginationDto, Status } from '../../../common/pagination/dto';
+import { PaginatedResult, PaginationDto, PaginationService, Status } from '../../../common';
 import { Prisma } from '@prisma/client';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';

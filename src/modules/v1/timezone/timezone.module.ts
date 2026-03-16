@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TimezoneService } from './timezone.service';
 import { TimezoneController } from './timezone.controller';
-import { PaginationModule } from '../../../common/pagination';
+import { PaginationModule } from '../../../common';
 
 @Module({
   imports: [PaginationModule],

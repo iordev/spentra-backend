@@ -12,8 +12,7 @@ import {
 } from '@nestjs/common';
 import { CurrencyService } from './currency.service';
 import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto } from '../../../common';
 
 @Controller('api/v1/currencies')
 export class CurrencyController {

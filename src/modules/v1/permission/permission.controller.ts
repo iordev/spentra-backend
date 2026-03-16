@@ -11,9 +11,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { PermissionService } from './permission.service';
-import { PermissionDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto } from '../../../common';
+import { CreatePermissionDto, UpdatePermissionDto } from './dto';
 
 @Controller('api/v1/permissions')
 export class PermissionController {
@@ -39,8 +38,8 @@ export class PermissionController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() permissionDto: PermissionDto) {
-    const data = await this.permissionsService.create(permissionDto);
+  async create(@Body() createPermissionDto: CreatePermissionDto) {
+    const data = await this.permissionsService.create(createPermissionDto);
     return {
       message: 'Great! Your permission is ready to go.',
       data,
@@ -49,8 +48,11 @@ export class PermissionController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  async update(@Param('id', ParseIntPipe) id: number, @Body() permissionDto: PermissionDto) {
-    const { permission, updated } = await this.permissionsService.update(id, permissionDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+  ) {
+    const { permission, updated } = await this.permissionsService.update(id, updatePermissionDto);
     const message = updated
       ? 'Update complete — your permission is current.'
       : "Everything's already up to date!";

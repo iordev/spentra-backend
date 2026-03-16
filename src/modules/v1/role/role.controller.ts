@@ -12,8 +12,7 @@ import {
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto } from '../../../common';
 import { CreateRoleDto, UpdateRoleDto } from './dto';
 
 @Controller('api/v1/roles')

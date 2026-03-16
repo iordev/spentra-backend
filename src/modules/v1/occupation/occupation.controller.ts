@@ -12,8 +12,7 @@ import {
 } from '@nestjs/common';
 import { OccupationService } from './occupation.service';
 import { CreateOccupationDto, UpdateOccupationDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto } from '../../../common';
 
 @Controller('api/v1/occupations')
 export class OccupationController {

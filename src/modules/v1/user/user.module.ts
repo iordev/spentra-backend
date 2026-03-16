@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { PaginationModule } from '../../../common/pagination';
+import { PaginationModule } from '../../../common';
 
 @Module({
   imports: [PaginationModule],

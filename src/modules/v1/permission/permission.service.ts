@@ -1,11 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PermissionDto } from './dto';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Prisma } from '@prisma/client';
-import { PaginationDto, Status } from '../../../common/pagination/dto';
-import { PaginatedResult, PaginationService } from '../../../common/pagination';
+import { PaginatedResult, PaginationDto, PaginationService, Status } from '../../../common';
+import { CreatePermissionDto, UpdatePermissionDto } from './dto';
 
 type PermissionResponse = {
   id: number;
@@ -42,6 +41,23 @@ export class PermissionService {
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
   ) {}
+
+  async create(createPermissionDto: CreatePermissionDto) {
+    const existingPermission = await this.prisma.permission.findUnique({
+      where: { name: createPermissionDto.name },
+    });
+
+    if (existingPermission) {
+      throw new ConflictException(`The permission ${createPermissionDto.name} already exists`);
+    }
+
+    const permission = await this.prisma.permission.create({
+      data: createPermissionDto,
+      select: this.permissionSelect,
+    });
+
+    return this.formatPermission(permission);
+  }
 
   async findAll(
     query: PaginationDto,
@@ -100,26 +116,9 @@ export class PermissionService {
     return this.formatPermission(permission);
   }
 
-  async create(permissionDto: PermissionDto) {
-    const existingPermission = await this.prisma.permission.findUnique({
-      where: { name: permissionDto.name },
-    });
-
-    if (existingPermission) {
-      throw new ConflictException(`The permission ${permissionDto.name} already exists`);
-    }
-
-    const permission = await this.prisma.permission.create({
-      data: permissionDto,
-      select: this.permissionSelect,
-    });
-
-    return this.formatPermission(permission);
-  }
-
   async update(
     id: number,
-    permissionDto: PermissionDto,
+    updatePermissionDto: UpdatePermissionDto,
   ): Promise<{ permission: FormattedPermission; updated: boolean }> {
     return this.prisma.$transaction(async (tx) => {
       const existingPermission = await tx.permission.findUnique({
@@ -131,18 +130,18 @@ export class PermissionService {
       }
 
       // Check for duplicate name only if it's being changed
-      if (permissionDto.name && permissionDto.name !== existingPermission.name) {
+      if (updatePermissionDto.name && updatePermissionDto.name !== existingPermission.name) {
         const duplicateName = await tx.permission.findUnique({
-          where: { name: permissionDto.name },
+          where: { name: updatePermissionDto.name },
         });
         if (duplicateName) {
-          throw new ConflictException(`The permission ${permissionDto.name} already exists`);
+          throw new ConflictException(`The permission ${updatePermissionDto.name} already exists`);
         }
       }
 
       // Determine if any field actually changed
-      const hasChanges = (Object.keys(permissionDto) as (keyof PermissionDto)[]).some(
-        (key) => permissionDto[key] !== existingPermission[key],
+      const hasChanges = (Object.keys(updatePermissionDto) as (keyof UpdatePermissionDto)[]).some(
+        (key) => updatePermissionDto[key] !== existingPermission[key],
       );
 
       if (!hasChanges) {
@@ -156,7 +155,7 @@ export class PermissionService {
       // Apply updates
       const updatedPermission = await tx.permission.update({
         where: { id },
-        data: permissionDto,
+        data: updatePermissionDto,
         select: this.permissionSelect,
       });
 

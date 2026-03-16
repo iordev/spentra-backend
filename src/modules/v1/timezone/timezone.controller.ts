@@ -12,8 +12,7 @@ import {
 } from '@nestjs/common';
 import { TimezoneService } from './timezone.service';
 import { CreateTimezoneDto, UpdateTimezoneDto } from './dto';
-import { PaginationDto } from '../../../common/pagination/dto';
-import { BaseUrl } from '../../../common/decorators';
+import { BaseUrl, PaginationDto } from '../../../common';
 
 @Controller('api/v1/timezones')
 export class TimezoneController {

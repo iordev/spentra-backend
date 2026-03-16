@@ -1,12 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PaginatedResult, PaginationService } from '../../../common/pagination';
+import { PaginatedResult, PaginationDto, PaginationService, Status } from '../../../common';
 import { CreateRoleDto, UpdateRoleDto } from './dto';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Prisma } from '@prisma/client';
 import { validatePermissions } from './helpers';
-import { PaginationDto, Status } from '../../../common/pagination/dto';
 
 type RoleResponse = {
   id: number;
@@ -49,6 +48,40 @@ export class RoleService {
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
   ) {}
+
+  async create(createRoleDto: CreateRoleDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const { permissions, ...roleData } = createRoleDto;
+
+      const existingRole = await tx.role.findUnique({
+        where: { name: createRoleDto.name },
+      });
+
+      if (existingRole) {
+        throw new ConflictException(`The role ${createRoleDto.name} already exists`);
+      }
+
+      // If permissions are provided, validate they exist
+      if (permissions && permissions.length > 0) {
+        await validatePermissions(tx, permissions);
+      }
+
+      // Create the role and connect permissions
+      const role = await tx.role.create({
+        data: {
+          ...roleData,
+          permissions:
+            permissions && permissions.length > 0
+              ? { connect: permissions.map((id) => ({ id })) }
+              : undefined,
+        },
+        select: roleSelect,
+      });
+
+      return this.formatRole(role);
+    });
+  }
+
   async findAll(query: PaginationDto, baseUrl: string): Promise<PaginatedResult<FormattedRole>> {
     const where: Prisma.RoleWhereInput = {};
 
@@ -96,39 +129,6 @@ export class RoleService {
     }
 
     return this.formatRole(role);
-  }
-
-  async create(createRoleDto: CreateRoleDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const { permissions, ...roleData } = createRoleDto;
-
-      const existingRole = await tx.role.findUnique({
-        where: { name: createRoleDto.name },
-      });
-
-      if (existingRole) {
-        throw new ConflictException(`The role ${createRoleDto.name} already exists`);
-      }
-
-      // If permissions are provided, validate they exist
-      if (permissions && permissions.length > 0) {
-        await validatePermissions(tx, permissions);
-      }
-
-      // Create the role and connect permissions
-      const role = await tx.role.create({
-        data: {
-          ...roleData,
-          permissions:
-            permissions && permissions.length > 0
-              ? { connect: permissions.map((id) => ({ id })) }
-              : undefined,
-        },
-        select: roleSelect,
-      });
-
-      return this.formatRole(role);
-    });
   }
 
   async update(id: number, updateRoleDto: UpdateRoleDto) {
