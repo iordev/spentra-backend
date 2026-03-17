@@ -9,16 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { PermissionService } from './permission.service';
-import { BaseUrl, PaginationDto } from '../../../common';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { CreatePermissionDto, UpdatePermissionDto } from './dto';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/permissions')
 export class PermissionController {
   constructor(private readonly permissionsService: PermissionService) {}
 
   @Get()
+  @RequirePermissions('permission:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.permissionsService.findAll(query, baseUrl);
     return {
@@ -28,6 +32,7 @@ export class PermissionController {
   }
 
   @Get(':id')
+  @RequirePermissions('permission:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.permissionsService.findOne(id);
     return {
@@ -37,6 +42,7 @@ export class PermissionController {
   }
 
   @Post()
+  @RequirePermissions('permission:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createPermissionDto: CreatePermissionDto) {
     const data = await this.permissionsService.create(createPermissionDto);
@@ -47,6 +53,7 @@ export class PermissionController {
   }
 
   @Patch(':id')
+  @RequirePermissions('permission:update')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -63,6 +70,7 @@ export class PermissionController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('permission:archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.permissionsService.archive(id);

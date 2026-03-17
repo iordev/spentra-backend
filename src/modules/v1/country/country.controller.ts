@@ -31,8 +31,8 @@ export class CountryController {
     };
   }
 
-  @RequirePermissions('country:display')
   @Get(':id')
+  @RequirePermissions('country:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.countryService.findOne(id);
     return {
@@ -41,8 +41,8 @@ export class CountryController {
     };
   }
 
-  @RequirePermissions('country:create')
   @Post()
+  @RequirePermissions('country:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createCountryDto: CreateCountryDto) {
     const data = await this.countryService.create(createCountryDto);
@@ -52,8 +52,8 @@ export class CountryController {
     };
   }
 
-  @RequirePermissions('country:update')
   @Patch(':id')
+  @RequirePermissions('country:update')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseIntPipe) id: number, @Body() updateCountryDto: UpdateCountryDto) {
     const { country, updated } = await this.countryService.update(id, updateCountryDto);
@@ -66,8 +66,8 @@ export class CountryController {
     };
   }
 
-  @RequirePermissions('country:archive')
   @Patch(':id/archive')
+  @RequirePermissions('country:archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.countryService.archive(id);

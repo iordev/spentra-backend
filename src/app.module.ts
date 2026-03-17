@@ -11,6 +11,9 @@ import { CurrencyModule } from './modules/v1/currency/currency.module';
 import { CommonModule } from './common';
 import { AuthModule } from './modules/v1/auth/auth.module';
 import * as Joi from 'joi';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { CustomThrottlerGuard } from './modules/v1/auth/guards';
 
 @Module({
   imports: [
@@ -25,6 +28,20 @@ import * as Joi from 'joi';
         JWT_REFRESH_SECRET: Joi.string().required(),
       }),
     }),
+
+    // ← configure rate limiting
+    ThrottlerModule.forRoot([
+      {
+        name: 'auth', // ← for auth routes (strict)
+        ttl: 60000, // ← 60 seconds window
+        limit: 5, // ← max 5 requests per 60 seconds
+      },
+      {
+        name: 'default', // ← for normal routes
+        ttl: 60000, // ← 60 second window
+        limit: 60, // ← max 60 requests per second
+      },
+    ]),
     PrismaModule,
     PermissionModule,
     RoleModule,
@@ -37,6 +54,11 @@ import * as Joi from 'joi';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard, // ← apply globally to all routes
+    },
+  ],
 })
 export class AppModule {}

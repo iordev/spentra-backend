@@ -9,16 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CurrencyService } from './currency.service';
 import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
-import { BaseUrl, PaginationDto } from '../../../common';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/currencies')
 export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
 
   @Get()
+  @RequirePermissions('currency:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this?.currencyService?.findAll(query, baseUrl);
     return {
@@ -28,6 +32,7 @@ export class CurrencyController {
   }
 
   @Get(':id')
+  @RequirePermissions('currency:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.currencyService.findOne(id);
     return {
@@ -37,6 +42,7 @@ export class CurrencyController {
   }
 
   @Post()
+  @RequirePermissions('currency:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createCurrencyDto: CreateCurrencyDto) {
     const data = await this.currencyService.create(createCurrencyDto);
@@ -47,6 +53,7 @@ export class CurrencyController {
   }
 
   @Patch(':id')
+  @RequirePermissions('currency:update')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -63,6 +70,7 @@ export class CurrencyController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('currency:archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.currencyService.archive(id);

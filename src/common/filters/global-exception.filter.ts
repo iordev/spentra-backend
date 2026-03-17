@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import { CustomThrottlerException } from '../exceptions';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -13,15 +14,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
     let error = 'Internal Server Error';
 
-    // 1. Handle NestJS HTTP exceptions
-    if (exception instanceof HttpException) {
+    if (exception instanceof CustomThrottlerException) {
+      status = HttpStatus.TOO_MANY_REQUESTS;
+      error = 'Too Many Requests';
+      const exceptionResponse = exception.getResponse();
+      message =
+        typeof exceptionResponse === 'string'
+          ? exceptionResponse
+          : 'Too many requests, please slow down.';
+    }
+
+    // only runs if ThrottlerException didn't match ✅
+    else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (this.isObject(exceptionResponse)) {
-        // ✅ No unnecessary assertion – exceptionResponse is already Record<string, unknown>
         message = this.extractStringProperty(exceptionResponse, 'message') ?? message;
         error = this.extractStringProperty(exceptionResponse, 'error') ?? HttpStatus[status];
       }

@@ -9,16 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { OccupationService } from './occupation.service';
 import { CreateOccupationDto, UpdateOccupationDto } from './dto';
-import { BaseUrl, PaginationDto } from '../../../common';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/occupations')
 export class OccupationController {
   constructor(private readonly occupationsService: OccupationService) {}
 
   @Get()
+  @RequirePermissions('occupation:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.occupationsService.findAll(query, baseUrl);
     return {
@@ -28,6 +32,7 @@ export class OccupationController {
   }
 
   @Get(':id')
+  @RequirePermissions('occupation:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.occupationsService.findOne(id);
     return {
@@ -37,6 +42,7 @@ export class OccupationController {
   }
 
   @Post()
+  @RequirePermissions('occupation:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createOccupationDto: CreateOccupationDto) {
     const data = await this.occupationsService.create(createOccupationDto);
@@ -47,6 +53,7 @@ export class OccupationController {
   }
 
   @Patch(':id')
+  @RequirePermissions('occupation:update')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -63,6 +70,7 @@ export class OccupationController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('occupation:archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.occupationsService.archive(id);

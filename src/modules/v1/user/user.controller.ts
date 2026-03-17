@@ -9,17 +9,21 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
-import { BaseUrl } from '../../../common';
+import { BaseUrl, RequirePermissions } from '../../../common';
 import { PaginationDto } from 'src/common';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/users')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 
   @Get()
+  @RequirePermissions('user:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.usersService.findAll(query, baseUrl);
     return {
@@ -29,6 +33,7 @@ export class UserController {
   }
 
   @Get(':id')
+  @RequirePermissions('user:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.usersService.findOne(id);
     return {
@@ -38,6 +43,7 @@ export class UserController {
   }
 
   @Post()
+  @RequirePermissions('user:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createUserDto: CreateUserDto) {
     const data = await this.usersService.create(createUserDto);
@@ -47,6 +53,7 @@ export class UserController {
     };
   }
   @Patch(':id')
+  @RequirePermissions('user:update')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
     const { user, updated } = await this.usersService.update(id, updateUserDto);
@@ -61,6 +68,7 @@ export class UserController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('user:archive')
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.usersService.archive(id);
     return {

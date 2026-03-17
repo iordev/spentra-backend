@@ -9,17 +9,21 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 
-import { BaseUrl, PaginationDto } from '../../../common';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { CreateRoleDto, UpdateRoleDto } from './dto';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/roles')
 export class RoleController {
   constructor(private readonly rolesService: RoleService) {}
 
   @Get()
+  @RequirePermissions('role:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.rolesService.findAll(query, baseUrl);
     return {
@@ -29,6 +33,7 @@ export class RoleController {
   }
 
   @Get(':id')
+  @RequirePermissions('role:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.rolesService.findOne(id);
     return {
@@ -38,6 +43,7 @@ export class RoleController {
   }
 
   @Post()
+  @RequirePermissions('role:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createRoleDto: CreateRoleDto) {
     const data = await this.rolesService.create(createRoleDto);
@@ -48,6 +54,7 @@ export class RoleController {
   }
 
   @Patch(':id')
+  @RequirePermissions('role:update')
   async update(@Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
     const { role, updated } = await this.rolesService.update(id, updateRoleDto);
     const message = updated
@@ -61,6 +68,7 @@ export class RoleController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('role:archive')
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.rolesService.archive(id);
     return {

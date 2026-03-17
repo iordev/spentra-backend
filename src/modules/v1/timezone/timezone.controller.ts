@@ -9,16 +9,20 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TimezoneService } from './timezone.service';
 import { CreateTimezoneDto, UpdateTimezoneDto } from './dto';
-import { BaseUrl, PaginationDto } from '../../../common';
+import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
+import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
+@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/timezones')
 export class TimezoneController {
   constructor(private readonly timezoneService: TimezoneService) {}
 
   @Get()
+  @RequirePermissions('timezone:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.timezoneService.findAll(query, baseUrl);
     return {
@@ -28,6 +32,7 @@ export class TimezoneController {
   }
 
   @Get(':id')
+  @RequirePermissions('timezone:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.timezoneService.findOne(id);
     return {
@@ -37,6 +42,7 @@ export class TimezoneController {
   }
 
   @Post()
+  @RequirePermissions('timezone:create')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createTimezoneDto: CreateTimezoneDto) {
     const data = await this.timezoneService.create(createTimezoneDto);
@@ -47,6 +53,7 @@ export class TimezoneController {
   }
 
   @Patch(':id')
+  @RequirePermissions('timezone:update')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -63,6 +70,7 @@ export class TimezoneController {
   }
 
   @Patch(':id/archive')
+  @RequirePermissions('timezone:archive')
   @HttpCode(HttpStatus.OK)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.timezoneService.archive(id);
