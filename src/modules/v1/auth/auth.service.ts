@@ -4,8 +4,25 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginDto } from './dto';
 import { Response } from 'express';
-import { User } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+
+type LoginUserPayload = Prisma.UserGetPayload<{
+  include: {
+    role: {
+      select: {
+        id: true;
+        name: true;
+        description: true;
+        permissions: { select: { id: true; name: true } };
+      };
+    };
+    occupation: { select: { id: true; name: true } };
+    currency: { select: { id: true; name: true; code: true; symbol: true } };
+    timezone: { select: { id: true; name: true } };
+    country: { select: { id: true; name: true; code: true } };
+  };
+}>;
 
 @Injectable()
 export class AuthService {
@@ -188,19 +205,19 @@ export class AuthService {
 
   // ─── Sliding Session (called by middleware) ───────────────────────────────────
 
-  private formatUser(user: any) {
+  private formatUser(user: LoginUserPayload) {
     const {
-      password,
-      refreshToken,
-      verificationToken,
-      resetPasswordToken,
-      resetPasswordExpiry,
-      deletedAt,
-      roleId, // ← hide raw FK
-      occupationId, // ← hide raw FK
-      currencyId, // ← hide raw FK
-      timezoneId, // ← hide raw FK
-      countryId, // ← hide raw FK
+      password: _password,
+      refreshToken: _refreshToken,
+      verificationToken: _verificationToken,
+      resetPasswordToken: _resetPasswordToken,
+      resetPasswordExpiry: _resetPasswordExpiry,
+      deletedAt: _deletedAt,
+      roleId: _roleId,
+      occupationId: _occupationId,
+      currencyId: _currencyId,
+      timezoneId: _timezoneId,
+      countryId: _countryId,
       ...safeUser
     } = user;
 
