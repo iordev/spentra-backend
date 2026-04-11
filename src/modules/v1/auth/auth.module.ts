@@ -3,17 +3,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { GoogleStrategy, JwtAccessStrategy, JwtRefreshStrategy } from './strategies';
+import {
+  GoogleStrategy,
+  MicrosoftStrategy,
+  FacebookStrategy,
+  JwtAccessStrategy,
+  JwtRefreshStrategy,
+} from './strategies';
 import { SlidingSessionMiddleware } from './middleware';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { MicrosoftStrategy } from './strategies/microsoft.strategy';
-import { FacebookStrategy } from './strategies/facebook.strategy';
 
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.register({}), // ← secrets handled per strategy
-  ],
+  imports: [PassportModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [
     AuthService,
@@ -25,7 +26,7 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
     FacebookStrategy,
     SlidingSessionMiddleware,
   ],
-  exports: [AuthService], // ← export if other modules need auth
+  exports: [AuthService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
