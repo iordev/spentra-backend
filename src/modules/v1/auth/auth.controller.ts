@@ -8,16 +8,174 @@ import {
   Res,
   UseGuards,
   UnauthorizedException,
+  Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto';
 import { JwtAccessGuard, JwtRefreshGuard } from './guards';
 import * as express from 'express';
 import { User } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('api/v1/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  // ─── OAuth Note ───────────────────────────────────────────────────────────────
+  // All OAuth providers (Google, Microsoft, Facebook) follow the same flow:
+  // 1. User logs in with their social account
+  // 2. We receive their basic profile (email, name, avatar) from the provider
+  // 3. If NEW user → redirect to frontend wizard with profile data as query params
+  //                → user fills in remaining required fields
+  //                → frontend submits everything to POST /users
+  //                → user record is created in DB
+  // 4. If EXISTING user → issue JWT cookies → redirect to dashboard
+  // No user record is created during OAuth — only after the wizard is completed.
+
+  // ─── Google OAuth ─────────────────────────────────────────────────────────────
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleLogin() {
+    // Passport automatically redirects to Google
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Req() req: express.Request, @Res() res: express.Response) {
+    const result = req.user as Awaited<ReturnType<typeof this.authService.getOAuthProfile>>;
+
+    if (result.isNewUser) {
+      // Redirect to frontend wizard with profile data as query params
+      const profile = result.profile ?? {
+        email: '',
+        firstName: '',
+        lastName: '',
+        avatarUrl: null,
+      };
+
+      const query = new URLSearchParams({
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        avatarUrl: profile.avatarUrl ?? '',
+        provider: 'google',
+      }).toString();
+
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+    }
+
+    if (!result.user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    // Existing user — issue JWT and redirect to dashboard
+    await this.authService.oauthLogin(result.user, res);
+    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`);
+    return res.json({
+      isNewUser: false,
+      message: 'Login successful.',
+      user: result.user, // ← add this to see the user data
+    });
+  }
+
+  // ─── Microsoft OAuth ──────────────────────────────────────────────────────────
+
+  @Get('microsoft')
+  @UseGuards(AuthGuard('microsoft'))
+  microsoftLogin() {
+    // Passport automatically redirects to Microsoft
+  }
+
+  @Get('microsoft/callback')
+  @UseGuards(AuthGuard('microsoft'))
+  async microsoftCallback(@Req() req: express.Request, @Res() res: express.Response) {
+    const result = req.user as Awaited<ReturnType<typeof this.authService.getOAuthProfile>>;
+
+    if (result.isNewUser) {
+      const profile = result.profile ?? {
+        email: '',
+        firstName: '',
+        lastName: '',
+        avatarUrl: null,
+      };
+
+      // Redirect to frontend wizard with profile data as query params
+      const query = new URLSearchParams({
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        avatarUrl: profile.avatarUrl ?? '',
+        provider: 'microsoft',
+      }).toString();
+
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+    }
+
+    if (!result.user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    // Existing user — issue JWT and redirect to dashboard
+    await this.authService.oauthLogin(result.user, res);
+    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`)
+    return res.json({
+      isNewUser: false,
+      message: 'Login successful.',
+      user: result.user,
+    });
+  }
+
+  // ─── Facebook OAuth ───────────────────────────────────────────────────────────
+
+  @Get('facebook')
+  @UseGuards(AuthGuard('facebook'))
+  facebookLogin() {
+    // Passport automatically redirects to Facebook
+  }
+
+  @Get('facebook/callback')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookCallback(@Req() req: express.Request, @Res() res: express.Response) {
+    const result = req.user as Awaited<ReturnType<typeof this.authService.getOAuthProfile>>;
+
+    if (result.isNewUser) {
+      const profile = result.profile ?? {
+        email: '',
+        firstName: '',
+        lastName: '',
+        avatarUrl: null,
+      };
+
+      // Redirect to frontend wizard with profile data as query params
+      const query = new URLSearchParams({
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        avatarUrl: profile.avatarUrl ?? '',
+        provider: 'facebook',
+      }).toString();
+
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+    }
+
+    if (!result.user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    // Existing user — issue JWT and redirect to dashboard
+    await this.authService.oauthLogin(result.user, res);
+    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`)
+    return res.json({
+      isNewUser: false,
+      message: 'Login successful.',
+      user: result.user,
+    });
+  }
 
   // ─── Login ───────────────────────────────────────────────────────────────────
 

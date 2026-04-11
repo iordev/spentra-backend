@@ -6,6 +6,7 @@ import { LoginDto } from './dto';
 import { Response } from 'express';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as express from 'express';
 
 type LoginUserPayload = Prisma.UserGetPayload<{
   include: {
@@ -31,6 +32,41 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
+
+  async getOAuthProfile(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+    provider: string;
+  }) {
+    // Check if user already exists
+    const existing = await this.prisma.user.findFirst({
+      where: { email: data.email },
+    });
+
+    // If already registered, just login normally
+    if (existing) {
+      return { isNewUser: false, user: existing };
+    }
+
+    // If new user, return profile data for the frontend wizard
+    return {
+      isNewUser: true,
+      profile: {
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        avatarUrl: data.avatarUrl,
+      },
+    };
+  }
+
+  async oauthLogin(user: User, res: express.Response) {
+    const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);
+    await this.hashAndStoreRefreshToken(user.id, refreshToken);
+    this.setTokenCookies(res, accessToken, refreshToken);
+  }
 
   // ─── Private Helpers ────────────────────────────────────────────────────────
 

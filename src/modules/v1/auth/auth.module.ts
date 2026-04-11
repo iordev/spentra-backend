@@ -3,9 +3,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtAccessStrategy, JwtRefreshStrategy } from './strategies';
+import { GoogleStrategy, JwtAccessStrategy, JwtRefreshStrategy } from './strategies';
 import { SlidingSessionMiddleware } from './middleware';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MicrosoftStrategy } from './strategies/microsoft.strategy';
+import { FacebookStrategy } from './strategies/facebook.strategy';
 
 @Module({
   imports: [
@@ -18,6 +20,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
     PrismaService,
     JwtAccessStrategy,
     JwtRefreshStrategy,
+    GoogleStrategy,
+    MicrosoftStrategy,
+    FacebookStrategy,
     SlidingSessionMiddleware,
   ],
   exports: [AuthService], // ← export if other modules need auth
