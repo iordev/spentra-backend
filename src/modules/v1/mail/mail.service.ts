@@ -55,4 +55,48 @@ export class MailService {
     `,
     });
   }
+
+  async sendVerificationEmail(email: string, firstName: string, verificationLink: string) {
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: email,
+      subject: 'Spentra — Verify Your Email',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        
+        <!-- Logo -->
+        <div style="margin-bottom: 24px;">
+          <h1 style="color: #10B981; margin: 0;">Spentra</h1>
+        </div>
+
+        <!-- Divider -->
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin-bottom: 24px;" />
+
+        <!-- Content -->
+        <h2 style="color: #111827;">Verify Your Email</h2>
+        <p style="color: #6B7280;">Hi ${firstName},</p>
+        <p style="color: #6B7280;">Thanks for signing up! Please verify your email address by clicking the button below:</p>
+
+        <!-- Button -->
+        <a href="${verificationLink}" 
+           style="display: inline-block; padding: 12px 24px; background-color: #10B981; color: white; text-decoration: none; border-radius: 6px; margin: 24px 0; font-weight: bold;">
+          Verify Email
+        </a>
+
+        <!-- Expiry Notice -->
+        <p style="color: #6B7280;">This link expires in <strong>24 hours</strong>.</p>
+        <p style="color: #6B7280;">If you did not create an account, please ignore this email.</p>
+
+        <!-- Fallback Link -->
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;" />
+        <p style="color: #9CA3AF; font-size: 12px;">Or copy and paste this link in your browser:</p>
+        <p style="color: #9CA3AF; font-size: 12px; word-break: break-all;">${verificationLink}</p>
+
+        <!-- Footer -->
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;" />
+        <p style="color: #9CA3AF; font-size: 12px; text-align: center;">© 2026 Spentra. All rights reserved.</p>
+      </div>
+    `,
+    });
+  }
 }

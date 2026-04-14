@@ -7,6 +7,9 @@ import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import * as bcrypt from 'bcrypt';
 import { PrismaValidatorService } from 'src/common';
+import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
+import { MailService } from '../mail/mail.service';
 
 type UserResponse = {
   id: number;
@@ -92,6 +95,8 @@ export class UserService {
     private prisma: PrismaService,
     private readonly paginationService: PaginationService,
     private readonly prismaValidator: PrismaValidatorService,
+    private mailService: MailService,
+    private config: ConfigService,
   ) {}
   async create(createUserDto: CreateUserDto): Promise<FormattedUser> {
     const {
@@ -139,6 +144,9 @@ export class UserService {
 
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
+    // Generate verification token
+    const verificationToken = randomBytes(32).toString('hex');
+
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -159,9 +167,15 @@ export class UserService {
         currencyId,
         timezoneId,
         countryId,
+        emailVerified: false,
+        verificationToken,
       },
       select: this.userSelect,
     });
+
+    // Send verification email
+    const verificationLink = `${this.config.get<string>('FRONTEND_URL')}/verify-email?token=${verificationToken}`;
+    await this.mailService.sendVerificationEmail(email, firstName, verificationLink);
 
     return this.formatUser(user as UserResponse);
   }

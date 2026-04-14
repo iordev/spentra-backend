@@ -292,6 +292,39 @@ export class AuthService {
     return { message: 'Password reset successfully. You can now login.' };
   }
 
+  async verifyEmail(token: string) {
+    try {
+      // 1. Find user by verification token
+      const user = await this.prisma.user.findFirst({
+        where: { verificationToken: token },
+      });
+
+      // 2. Token not found
+      if (!user) {
+        throw new BadRequestException('Invalid or expired verification token.');
+      }
+
+      // 3. Already verified
+      if (user.emailVerified) {
+        throw new BadRequestException('Email is already verified.');
+      }
+
+      // 4. Update user — set emailVerified to true and clear token
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+          verificationToken: null,
+        },
+      });
+
+      return { message: 'Email verified successfully. You can now login.' };
+    } catch (error) {
+      console.error('verifyEmail error:', error);
+      throw error;
+    }
+  }
+
   async extendSession(user: User, res: Response) {
     // Called on every active request to reset the 30min timer
     const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);

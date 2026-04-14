@@ -12,7 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ChangePasswordDto, ForgotPasswordDto, LoginDto, ResetPasswordDto } from './dto';
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
+} from './dto';
 import { JwtAccessGuard, JwtRefreshGuard } from './guards';
 import * as express from 'express';
 import { User } from '@prisma/client';
@@ -243,5 +249,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  // ─── Verify Email ─────────────────────────────────────────────────────────────
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto.token);
   }
 }
