@@ -14,6 +14,7 @@ import * as Joi from 'joi';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CustomThrottlerGuard } from './modules/v1/auth/guards';
+import { MailModule } from './modules/v1/mail/mail.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { CustomThrottlerGuard } from './modules/v1/auth/guards';
     CurrencyModule,
     CommonModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [],
   providers: [

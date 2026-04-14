@@ -1,12 +1,19 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { LoginDto } from './dto';
+import { ChangePasswordDto, LoginDto, ResetPasswordDto } from './dto';
+import * as express from 'express';
 import { Response } from 'express';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import * as express from 'express';
+import { randomBytes } from 'crypto';
+import { MailService } from '../mail/mail.service';
 
 type LoginUserPayload = Prisma.UserGetPayload<{
   include: {
@@ -31,6 +38,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async getOAuthProfile(data: {
@@ -175,6 +183,113 @@ export class AuthService {
 
     // Clear cookies
     this.clearTokenCookies(res);
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    const { currentPassword, newPassword, confirmPassword } = dto;
+
+    // 1. Check if new password and confirm password match
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New password and confirm password do not match.');
+    }
+
+    // 2. Find user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    // 3. Verify current password
+    const passwordMatches = await bcrypt.compare(currentPassword, user.password ?? '');
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Current password is incorrect.');
+    }
+
+    // 4. Check if new password is the same as current password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password ?? '');
+    if (isSamePassword) {
+      throw new BadRequestException('New password must be different from current password.');
+    }
+
+    // 5. Hash and update new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { message: 'Password changed successfully.' };
+  }
+
+  async forgotPassword(email: string) {
+    // 1. Find user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // 2. If user not found return error
+    if (!user) {
+      throw new NotFoundException('No account found with that email address.');
+    }
+
+    // 3. Generate a secure random token
+    const token = randomBytes(32).toString('hex');
+
+    // 4. Store token and expiry in DB (15 minutes)
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: token,
+        resetPasswordExpiry: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
+
+    // 5. Send reset link via Resend
+    const resetLink = `${this.config.get<string>('FRONTEND_URL')}/reset-password?token=${token}`;
+    await this.mailService.sendResetPasswordLink(user.email, user.firstName, resetLink);
+
+    return { message: `Password reset link has been sent to ${user.email}.` };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const { token, newPassword, confirmPassword } = dto;
+
+    // 1. Check if passwords match
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New password and confirm password do not match.');
+    }
+
+    // 2. Find user by token
+    const user = await this.prisma.user.findFirst({
+      where: { resetPasswordToken: token },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token.');
+    }
+
+    // 3. Check if token is expired
+    if (!user.resetPasswordExpiry || user.resetPasswordExpiry < new Date()) {
+      throw new BadRequestException('Reset token has expired. Please request a new one.');
+    }
+
+    // 4. Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 5. Update password and clear token
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpiry: null,
+      },
+    });
+
+    return { message: 'Password reset successfully. You can now login.' };
   }
 
   async extendSession(user: User, res: Response) {

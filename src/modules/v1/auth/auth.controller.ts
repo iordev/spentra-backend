@@ -1,17 +1,18 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
-  UseGuards,
   UnauthorizedException,
-  Get,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto';
+import { ChangePasswordDto, ForgotPasswordDto, LoginDto, ResetPasswordDto } from './dto';
 import { JwtAccessGuard, JwtRefreshGuard } from './guards';
 import * as express from 'express';
 import { User } from '@prisma/client';
@@ -216,5 +217,31 @@ export class AuthController {
       message: 'Logged out successfully.',
       data: null,
     };
+  }
+
+  @Patch('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
+  async changePassword(@Req() req: express.Request, @Body() changePasswordDto: ChangePasswordDto) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found.');
+    }
+    return await this.authService.changePassword((req.user as User).id, changePasswordDto);
+  }
+
+  // ─── Forgot Password ──────────────────────────────────────────────────────────
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  // ─── Reset Password ───────────────────────────────────────────────────────────
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

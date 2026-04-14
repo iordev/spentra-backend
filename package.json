@@ -52,6 +52,7 @@
     "passport-microsoft": "^2.1.0",
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.11.0",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
