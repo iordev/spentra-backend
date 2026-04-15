@@ -325,6 +325,15 @@ export class AuthService {
     }
   }
 
+  async checkEmail(email: string): Promise<{ exists: boolean }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: { id: true }, // only fetch id, no unnecessary data
+    });
+
+    return { exists: !!user };
+  }
+
   async extendSession(user: User, res: Response) {
     // Called on every active request to reset the 30min timer
     const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);

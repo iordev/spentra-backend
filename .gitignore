@@ -51,3 +51,5 @@ prisma/dev.db
 .vscode/
 
 /generated/prisma
+
+*.zip

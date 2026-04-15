@@ -14,6 +14,7 @@ import {
 import { AuthService } from './auth.service';
 import {
   ChangePasswordDto,
+  CheckEmailDto,
   ForgotPasswordDto,
   LoginDto,
   ResetPasswordDto,
@@ -257,5 +258,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  @Post('check-email')
+  @HttpCode(HttpStatus.OK)
+  async checkEmail(@Body() dto: CheckEmailDto) {
+    return this.authService.checkEmail(dto.email);
   }
 }
