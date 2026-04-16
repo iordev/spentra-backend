@@ -25,6 +25,7 @@ import * as express from 'express';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
+import { CheckUsernameDto } from './dto/check-username.dto';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -264,5 +265,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async checkEmail(@Body() dto: CheckEmailDto) {
     return this.authService.checkEmail(dto.email);
+  }
+
+  @Post('check-username')
+  @HttpCode(HttpStatus.OK)
+  async checkUsername(@Body() dto: CheckUsernameDto) {
+    return this.authService.checkUsername(dto.username);
   }
 }
