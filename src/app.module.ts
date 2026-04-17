@@ -40,7 +40,7 @@ import { MailModule } from './modules/v1/mail/mail.module';
       {
         name: 'default', // ← for normal routes
         ttl: 60000, // ← 60 second window
-        limit: 60, // ← max 60 requests per second
+        limit: 120, // ← max 60 requests per second
       },
     ]),
     PrismaModule,

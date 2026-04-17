@@ -16,7 +16,6 @@ import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
-@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/currencies')
 export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
@@ -37,6 +36,7 @@ export class CurrencyController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get(':id')
   @RequirePermissions('currency:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -47,6 +47,7 @@ export class CurrencyController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Post()
   @RequirePermissions('currency:create')
   @HttpCode(HttpStatus.CREATED)
@@ -58,6 +59,7 @@ export class CurrencyController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('currency:update')
   @HttpCode(HttpStatus.OK)
@@ -75,6 +77,7 @@ export class CurrencyController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id/archive')
   @RequirePermissions('currency:archive')
   @HttpCode(HttpStatus.OK)

@@ -16,7 +16,6 @@ import { CreateCountryDto, UpdateCountryDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
-@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/countries')
 export class CountryController {
   constructor(private readonly countryService: CountryService) {}
@@ -38,6 +37,7 @@ export class CountryController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get(':id')
   @RequirePermissions('country:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -48,6 +48,7 @@ export class CountryController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Post()
   @RequirePermissions('country:create')
   @HttpCode(HttpStatus.CREATED)
@@ -59,6 +60,7 @@ export class CountryController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('country:update')
   @HttpCode(HttpStatus.OK)
@@ -73,6 +75,7 @@ export class CountryController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id/archive')
   @RequirePermissions('country:archive')
   @HttpCode(HttpStatus.OK)

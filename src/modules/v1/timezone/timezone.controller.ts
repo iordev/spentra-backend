@@ -16,7 +16,6 @@ import { CreateTimezoneDto, UpdateTimezoneDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
-@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/timezones')
 export class TimezoneController {
   constructor(private readonly timezoneService: TimezoneService) {}
@@ -38,6 +37,7 @@ export class TimezoneController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get(':id')
   @RequirePermissions('timezone:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -48,6 +48,7 @@ export class TimezoneController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Post()
   @RequirePermissions('timezone:create')
   @HttpCode(HttpStatus.CREATED)
@@ -59,6 +60,7 @@ export class TimezoneController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('timezone:update')
   @HttpCode(HttpStatus.OK)
@@ -76,6 +78,7 @@ export class TimezoneController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id/archive')
   @RequirePermissions('timezone:archive')
   @HttpCode(HttpStatus.OK)

@@ -16,7 +16,6 @@ import { CreateOccupationDto, UpdateOccupationDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
-@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('api/v1/occupations')
 export class OccupationController {
   constructor(private readonly occupationsService: OccupationService) {}
@@ -37,6 +36,7 @@ export class OccupationController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get(':id')
   @RequirePermissions('occupation:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -47,6 +47,7 @@ export class OccupationController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Post()
   @RequirePermissions('occupation:create')
   @HttpCode(HttpStatus.CREATED)
@@ -58,6 +59,7 @@ export class OccupationController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('occupation:update')
   @HttpCode(HttpStatus.OK)
@@ -75,6 +77,7 @@ export class OccupationController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id/archive')
   @RequirePermissions('occupation:archive')
   @HttpCode(HttpStatus.OK)
