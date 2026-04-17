@@ -22,9 +22,16 @@ export class CountryController {
   constructor(private readonly countryService: CountryService) {}
 
   @Get()
-  @RequirePermissions('country:display')
+  // @RequirePermissions('country:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.countryService.findAll(query, baseUrl);
+    if (Array.isArray(data)) {
+      return {
+        message: 'Your countries are now displayed.',
+        data,
+      };
+    }
+
     return {
       message: 'Your countries are now displayed.',
       ...data,

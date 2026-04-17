@@ -22,9 +22,15 @@ export class OccupationController {
   constructor(private readonly occupationsService: OccupationService) {}
 
   @Get()
-  @RequirePermissions('occupation:display')
+  // @RequirePermissions('occupation:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.occupationsService.findAll(query, baseUrl);
+    if (Array.isArray(data)) {
+      return {
+        message: 'Your occupations are now displayed.',
+        data,
+      };
+    }
     return {
       message: 'Your occupations are now displayed.',
       ...data,

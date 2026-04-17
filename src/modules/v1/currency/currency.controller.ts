@@ -22,9 +22,15 @@ export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
 
   @Get()
-  @RequirePermissions('currency:display')
+  // @RequirePermissions('currency:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this?.currencyService?.findAll(query, baseUrl);
+    if (Array.isArray(data)) {
+      return {
+        message: 'Your currencies are now displayed.',
+        data,
+      };
+    }
     return {
       message: 'Your currencies are now displayed.',
       ...data,

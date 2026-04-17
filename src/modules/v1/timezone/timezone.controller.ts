@@ -22,9 +22,16 @@ export class TimezoneController {
   constructor(private readonly timezoneService: TimezoneService) {}
 
   @Get()
-  @RequirePermissions('timezone:display')
+  // @RequirePermissions('timezone:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
     const data = await this.timezoneService.findAll(query, baseUrl);
+
+    if (Array.isArray(data)) {
+      return {
+        message: 'Your timezones are now displayed.',
+        data,
+      };
+    }
     return {
       message: 'Your timezones are now displayed.',
       ...data,

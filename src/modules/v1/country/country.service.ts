@@ -53,7 +53,10 @@ export class CountryService {
     return this.formatCountry(country);
   }
 
-  async findAll(query: PaginationDto, baseUrl: string): Promise<PaginatedResult<FormattedCountry>> {
+  async findAll(
+    query: PaginationDto,
+    baseUrl: string,
+  ): Promise<PaginatedResult<FormattedCountry> | FormattedCountry[]> {
     const where: Prisma.CountryWhereInput = {};
 
     if (query.status === Status.ACTIVE) {
@@ -70,6 +73,16 @@ export class CountryService {
     const orderBy: Prisma.CountryOrderByWithRelationInput = query.sortBy
       ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
       : { updatedAt: 'desc' };
+
+    if (query.all) {
+      const data = await this.prisma.country.findMany({
+        where,
+        orderBy,
+        select: this.countrySelect,
+      });
+
+      return data.map((country) => this.formatCountry(country as CountryResponse));
+    }
 
     // Call paginate
     const paginated = await this.paginationService.paginate(this.prisma.country, query, baseUrl, {

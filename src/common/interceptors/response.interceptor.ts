@@ -19,18 +19,19 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
 
     return next.handle().pipe(
       map((controllerReturned) => {
-        // ← use "in" operator to check key EXISTS (even if value is null)
-        const hasDataKey = controllerReturned && 'data' in controllerReturned;
-        const data = hasDataKey ? controllerReturned.data : controllerReturned;
-        const message = controllerReturned?.message ?? 'Request successful';
+        const isArray = Array.isArray(controllerReturned);
+        const isPaginated = !isArray && controllerReturned && 'data' in controllerReturned;
+
+        const data = isPaginated ? controllerReturned.data : controllerReturned;
+        const message = (!isArray && controllerReturned?.message) ?? 'Request successful';
 
         return {
           success: true,
           statusCode,
           message,
           data,
-          ...(controllerReturned?.meta && { meta: controllerReturned.meta }),
-          ...(controllerReturned?.links && { links: controllerReturned.links }),
+          ...(!isArray && controllerReturned?.meta && { meta: controllerReturned.meta }),
+          ...(!isArray && controllerReturned?.links && { links: controllerReturned.links }),
           timestamp: new Date().toISOString(),
         };
       }),

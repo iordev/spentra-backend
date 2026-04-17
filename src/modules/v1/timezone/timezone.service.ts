@@ -52,7 +52,7 @@ export class TimezoneService {
   async findAll(
     query: PaginationDto,
     baseUrl: string,
-  ): Promise<PaginatedResult<FormattedTimezone>> {
+  ): Promise<PaginatedResult<FormattedTimezone> | FormattedTimezone[]> {
     const where: Prisma.TimezoneWhereInput = {};
 
     if (query.status === Status.ACTIVE) {
@@ -69,6 +69,16 @@ export class TimezoneService {
     const orderBy: Prisma.TimezoneOrderByWithRelationInput = query.sortBy
       ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
       : { updatedAt: 'desc' };
+
+    if (query.all) {
+      const data = await this.prisma.timezone.findMany({
+        where,
+        orderBy,
+        select: this.timezoneSelect,
+      });
+
+      return data.map((timezone) => this.formatTimezone(timezone as TimezoneResponse));
+    }
 
     // Call paginate
     const paginated = await this.paginationService.paginate(this.prisma.timezone, query, baseUrl, {

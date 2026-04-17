@@ -54,7 +54,7 @@ export class OccupationService {
   async findAll(
     query: PaginationDto,
     baseUrl: string,
-  ): Promise<PaginatedResult<FormattedOccupation>> {
+  ): Promise<PaginatedResult<FormattedOccupation> | FormattedOccupation[]> {
     const where: Prisma.OccupationWhereInput = {};
 
     if (query.status === Status.ACTIVE) {
@@ -71,6 +71,16 @@ export class OccupationService {
     const orderBy: Prisma.OccupationOrderByWithRelationInput = query.sortBy
       ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
       : { updatedAt: 'desc' };
+
+    if (query.all) {
+      const data = await this.prisma.occupation.findMany({
+        where,
+        orderBy,
+        select: this.occupationSelect,
+      });
+
+      return data.map((occupation) => this.formatOccupation(occupation as OccupationResponse));
+    }
 
     // Call paginate
     const paginated = await this.paginationService.paginate(

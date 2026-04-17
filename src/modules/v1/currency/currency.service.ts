@@ -58,7 +58,7 @@ export class CurrencyService {
   async findAll(
     query: PaginationDto,
     baseUrl: string,
-  ): Promise<PaginatedResult<FormattedCurrency>> {
+  ): Promise<PaginatedResult<FormattedCurrency> | FormattedCurrency[]> {
     const where: Prisma.CurrencyWhereInput = {};
 
     if (query.status === Status.ACTIVE) {
@@ -75,6 +75,16 @@ export class CurrencyService {
     const orderBy: Prisma.CurrencyOrderByWithRelationInput = query.sortBy
       ? { [query.sortBy]: query.order?.toLowerCase() === 'asc' ? 'asc' : 'desc' }
       : { updatedAt: 'desc' };
+
+    if (query.all) {
+      const data = await this.prisma.currency.findMany({
+        where,
+        orderBy,
+        select: this.currencySelect,
+      });
+
+      return data.map((currency) => this.formatCurrency(currency as CurrencyResponse));
+    }
 
     // Call paginate
     const paginated = await this.paginationService.paginate(this.prisma.currency, query, baseUrl, {
