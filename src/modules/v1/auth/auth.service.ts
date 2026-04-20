@@ -381,7 +381,7 @@ export class AuthService {
 
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
-    const maxAge = 30 * 60 * 1000; // 30 minutes in ms
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
 
     res.cookie('access_token', accessToken, {
       httpOnly: true, // ← JS cannot access this cookie
