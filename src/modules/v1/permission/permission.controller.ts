@@ -17,7 +17,7 @@ import { CreatePermissionDto, UpdatePermissionDto } from './dto';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
 @UseGuards(JwtAccessGuard, PermissionsGuard)
-@Controller('api/v1/permissions')
+@Controller('permissions')
 export class PermissionController {
   constructor(private readonly permissionsService: PermissionService) {}
 

@@ -26,8 +26,9 @@ import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { CheckUsernameDto } from './dto/check-username.dto';
+import { Throttle } from '@nestjs/throttler';
 
-@Controller('api/v1/auth')
+@Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -187,7 +188,7 @@ export class AuthController {
   }
 
   // ─── Login ───────────────────────────────────────────────────────────────────
-
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
@@ -199,7 +200,7 @@ export class AuthController {
   }
 
   // ─── Refresh ─────────────────────────────────────────────────────────────────
-
+  @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
@@ -238,7 +239,7 @@ export class AuthController {
   }
 
   // ─── Forgot Password ──────────────────────────────────────────────────────────
-
+  @Throttle({ strict: { limit: 3, ttl: 300000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -246,7 +247,7 @@ export class AuthController {
   }
 
   // ─── Reset Password ───────────────────────────────────────────────────────────
-
+  @Throttle({ strict: { limit: 5, ttl: 300000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
@@ -254,7 +255,7 @@ export class AuthController {
   }
 
   // ─── Verify Email ─────────────────────────────────────────────────────────────
-
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {

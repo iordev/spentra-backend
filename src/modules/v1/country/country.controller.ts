@@ -15,11 +15,13 @@ import { CountryService } from './country.service';
 import { CreateCountryDto, UpdateCountryDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
+import { SkipThrottle } from '@nestjs/throttler';
 
-@Controller('api/v1/countries')
+@Controller('countries')
 export class CountryController {
   constructor(private readonly countryService: CountryService) {}
 
+  @SkipThrottle()
   @Get()
   // @RequirePermissions('country:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {

@@ -15,7 +15,7 @@ export class SlidingSessionMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const accessToken = req?.cookies?.access_token;
+    const accessToken = req?.cookies?.access_token as string | undefined;
 
     // No token present — skip, let guard handle it
     if (!accessToken) {
@@ -43,7 +43,7 @@ export class SlidingSessionMiddleware implements NestMiddleware {
 
       // 4. Token is valid + user is active → reset the 30min timer
       await this.authService.extendSession(user, res);
-    } catch (err) {
+    } catch (_err) {
       // Token expired or invalid — skip, let guard handle the 401
     }
 

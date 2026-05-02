@@ -22,10 +22,11 @@ export class PrismaValidatorService {
   async validateId(model: ValidatableModel, id: number | string | undefined | null): Promise<void> {
     if (id == null) return;
 
-    const record = await (this.prisma[model] as any).findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+    const record = (await (this.prisma[model] as any).findUnique({
       where: { id },
       select: { id: true },
-    });
+    })) as { id: number } | null;
 
     if (!record) {
       throw new NotFoundException(

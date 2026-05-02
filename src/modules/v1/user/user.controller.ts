@@ -18,7 +18,7 @@ import { PaginationDto } from 'src/common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 
 @UseGuards(JwtAccessGuard, PermissionsGuard)
-@Controller('api/v1/users')
+@Controller('users')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 

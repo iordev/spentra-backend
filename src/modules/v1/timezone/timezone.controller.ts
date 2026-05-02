@@ -15,11 +15,13 @@ import { TimezoneService } from './timezone.service';
 import { CreateTimezoneDto, UpdateTimezoneDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
+import { SkipThrottle } from '@nestjs/throttler';
 
-@Controller('api/v1/timezones')
+@Controller('timezones')
 export class TimezoneController {
   constructor(private readonly timezoneService: TimezoneService) {}
 
+  @SkipThrottle()
   @Get()
   // @RequirePermissions('timezone:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {

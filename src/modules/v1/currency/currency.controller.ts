@@ -15,11 +15,13 @@ import { CurrencyService } from './currency.service';
 import { CreateCurrencyDto, UpdateCurrencyDto } from './dto';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
+import { SkipThrottle } from '@nestjs/throttler';
 
-@Controller('api/v1/currencies')
+@Controller('currencies')
 export class CurrencyController {
   constructor(private readonly currencyService: CurrencyService) {}
 
+  @SkipThrottle()
   @Get()
   // @RequirePermissions('currency:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {

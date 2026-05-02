@@ -33,14 +33,19 @@ import { MailModule } from './modules/v1/mail/mail.module';
     // ← configure rate limiting
     ThrottlerModule.forRoot([
       {
-        name: 'auth', // ← for auth routes (strict)
-        ttl: 60000, // ← 60 seconds window
-        limit: 5, // ← max 5 requests per 60 seconds
+        name: 'auth',
+        ttl: 60000,
+        limit: 5,
       },
       {
-        name: 'default', // ← for normal routes
-        ttl: 60000, // ← 60 second window
-        limit: 120, // ← max 60 requests per second
+        name: 'strict', // for forgot-password, reset-password
+        ttl: 300000, // 5 min
+        limit: 3,
+      },
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 120,
       },
     ]),
     PrismaModule,

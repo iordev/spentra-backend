@@ -132,7 +132,7 @@ export class AuthService {
 
     // 2. User not found
     if (!user) {
-      throw new NotFoundException('Invalid credentials.');
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     // 3. Soft deleted account
