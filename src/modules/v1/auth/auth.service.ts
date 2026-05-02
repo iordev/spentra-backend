@@ -1,19 +1,22 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ChangePasswordDto, LoginDto, ResetPasswordDto } from './dto';
+import { ChangePasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 import * as express from 'express';
 import { Response } from 'express';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { PrismaValidatorService } from '../../../common';
 
 type LoginUserPayload = Prisma.UserGetPayload<{
   include: {
@@ -39,6 +42,7 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
     private mailService: MailService,
+    private readonly prismaValidator: PrismaValidatorService,
   ) {}
 
   async getOAuthProfile(data: {
@@ -132,7 +136,7 @@ export class AuthService {
 
     // 2. User not found
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new NotFoundException('No account found with that email or username.');
     }
 
     // 3. Soft deleted account
@@ -153,7 +157,7 @@ export class AuthService {
     // 6. Wrong password
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new UnauthorizedException('Incorrect password.');
     }
 
     // 7. Generate tokens, store hash, set cookies
@@ -162,6 +166,77 @@ export class AuthService {
     this.setTokenCookies(res, accessToken, refreshToken);
 
     return this.formatUser(user);
+  }
+
+  async register(dto: RegisterDto) {
+    // 1. Check email not taken
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('Email is already taken.');
+    }
+
+    // 2. Check username not taken
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username: dto.username },
+    });
+    if (existingUsername) {
+      throw new ConflictException('Username is already taken.');
+    }
+
+    // 3. Look up default role dynamically
+    const defaultRole = await this.prisma.role.findFirst({
+      where: { name: 'USER' },
+    });
+    if (!defaultRole) {
+      throw new InternalServerErrorException('Default role not found.');
+    }
+
+    // 4. Validate foreign keys (occupation, country, currency, timezone)
+    await this.prismaValidator.validateIds({
+      occupation: dto.occupationId,
+      currency: dto.currencyId,
+      timezone: dto.timezoneId,
+      country: dto.countryId,
+    });
+
+    // 5. Hash password
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    // 6. Generate verification token
+    const verificationToken = randomBytes(32).toString('hex');
+
+    // 7. Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        username: dto.username,
+        password: hashedPassword,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        fullName: `${dto.firstName} ${dto.lastName}`,
+        middleName: dto.middleName,
+        suffix: dto.suffix,
+        gender: dto.gender,
+        birthDate: new Date(dto.birthDate),
+        occupationId: dto.occupationId,
+        countryId: dto.countryId,
+        currencyId: dto.currencyId,
+        timezoneId: dto.timezoneId,
+        roleId: defaultRole.id,
+        emailVerified: false,
+        verificationToken,
+      },
+    });
+
+    // 8. Send verification email
+    const verificationLink = `${this.config.get<string>('FRONTEND_URL')}/verify-email?token=${verificationToken}`;
+    await this.mailService.sendVerificationEmail(user.email, user.firstName, verificationLink);
+
+    return {
+      message: 'Registration successful. Please verify your email.',
+    };
   }
 
   async refresh(user: User, res: Response) {
@@ -323,6 +398,38 @@ export class AuthService {
       console.error('verifyEmail error:', error);
       throw error;
     }
+  }
+
+  async resendVerification(email: string) {
+    // 1. Find user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // 2. User not found — use vague message to prevent email enumeration
+    if (!user) {
+      return { message: 'If that email exists, a verification link has been sent.' };
+    }
+
+    // 3. Already verified
+    if (user.emailVerified) {
+      throw new BadRequestException('Email is already verified.');
+    }
+
+    // 4. Generate new token
+    const verificationToken = randomBytes(32).toString('hex');
+
+    // 5. Update token in DB
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { verificationToken },
+    });
+
+    // 6. Send email
+    const verificationLink = `${this.config.get<string>('FRONTEND_URL')}/verify-email?token=${verificationToken}`;
+    await this.mailService.sendVerificationEmail(user.email, user.firstName, verificationLink);
+
+    return { message: 'If that email exists, a verification link has been sent.' };
   }
 
   async checkEmail(email: string): Promise<{ exists: boolean }> {

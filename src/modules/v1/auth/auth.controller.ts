@@ -17,6 +17,8 @@ import {
   CheckEmailDto,
   ForgotPasswordDto,
   LoginDto,
+  RegisterDto,
+  ResendVerificationDto,
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto';
@@ -199,6 +201,13 @@ export class AuthController {
     };
   }
 
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
   // ─── Refresh ─────────────────────────────────────────────────────────────────
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('refresh')
@@ -260,6 +269,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  // ─── Resend Email ─────────────────────────────────────────────────────────────
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ strict: { limit: 3, ttl: 300000 } }) // 3 per 5 min
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post('check-email')
