@@ -9,10 +9,16 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ChangePasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  OAuthRegisterDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from './dto';
 import * as express from 'express';
 import { Response } from 'express';
-import { Prisma, User } from '@prisma/client';
+import { AuthProvider, Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { MailService } from '../mail/mail.service';
@@ -236,6 +242,86 @@ export class AuthService {
 
     return {
       message: 'Registration successful. Please verify your email.',
+    };
+  }
+
+  async oauthRegister(dto: OAuthRegisterDto, res: express.Response) {
+    try {
+      // ... your existing code
+    } catch (error) {
+      console.error('oauthRegister error:', error);
+      throw error;
+    }
+    // 1. Check email not taken
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('Email is already taken.');
+    }
+
+    // 2. Check username not taken
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username: dto.username },
+    });
+    if (existingUsername) {
+      throw new ConflictException('Username is already taken.');
+    }
+
+    // 3. Look up default role dynamically
+    const defaultRole = await this.prisma.role.findFirst({
+      where: { name: 'USER' },
+    });
+    if (!defaultRole) {
+      throw new InternalServerErrorException('Default role not found.');
+    }
+
+    // 4. Validate foreign keys
+    await this.prismaValidator.validateIds({
+      occupation: dto.occupationId,
+      currency: dto.currencyId,
+      timezone: dto.timezoneId,
+      country: dto.countryId,
+    });
+
+    // 5. Create user (no password, email already verified via OAuth)
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        username: dto.username,
+        password: null, // ← no password for OAuth users
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        fullName: `${dto.firstName} ${dto.lastName}`,
+        avatarUrl: dto.avatarUrl ?? null,
+        gender: dto.gender,
+        birthDate: new Date(dto.birthDate),
+        occupationId: dto.occupationId,
+        countryId: dto.countryId,
+        currencyId: dto.currencyId,
+        timezoneId: dto.timezoneId,
+        roleId: defaultRole.id,
+        emailVerified: true,
+        verificationToken: null,
+      },
+    });
+
+    // 6. Create UserAuth record linking the OAuth provider
+    await this.prisma.userAuth.create({
+      data: {
+        provider: dto.provider.toUpperCase() as AuthProvider,
+        providerId: dto.email, // use email as providerId since we have it from OAuth
+        userId: user.id,
+      },
+    });
+
+    const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);
+    await this.hashAndStoreRefreshToken(user.id, refreshToken);
+    this.setTokenCookies(res, accessToken, refreshToken);
+
+    return {
+      message: 'Registration successful.',
+      data: { userId: user.id },
     };
   }
 

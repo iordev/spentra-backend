@@ -17,6 +17,7 @@ import {
   CheckEmailDto,
   ForgotPasswordDto,
   LoginDto,
+  OAuthRegisterDto,
   RegisterDto,
   ResendVerificationDto,
   ResetPasswordDto,
@@ -125,7 +126,7 @@ export class AuthController {
         provider: 'microsoft',
       }).toString();
 
-      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/signup?${query}`);
     }
 
     if (!result.user) {
@@ -172,7 +173,7 @@ export class AuthController {
         provider: 'facebook',
       }).toString();
 
-      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/signup?${query}`);
     }
 
     if (!result.user) {
@@ -187,6 +188,16 @@ export class AuthController {
       message: 'Login successful.',
       user: result.user,
     });
+  }
+
+  @Post('oauth-register')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
+  async oauthRegister(
+    @Body() dto: OAuthRegisterDto,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    return this.authService.oauthRegister(dto, res);
   }
 
   // ─── Login ───────────────────────────────────────────────────────────────────

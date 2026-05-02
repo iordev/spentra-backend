@@ -6,3 +6,4 @@ export * from './verify-email.dto';
 export * from './check-email.dto';
 export * from './register.dto';
 export * from './resend-verification.dto';
+export * from './oauth-register.dto';

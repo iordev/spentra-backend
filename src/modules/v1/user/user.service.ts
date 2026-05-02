@@ -16,6 +16,7 @@ type UserResponse = {
   email: string;
   username?: string | null;
   emailVerified: boolean;
+  isOnboarded: boolean;
   fullName: string;
   firstName: string;
   middleName?: string | null;
@@ -40,6 +41,7 @@ type FormattedUser = {
   email: string;
   username?: string | null;
   emailVerified: boolean;
+  isOnboarded: boolean;
   profile: {
     fullName: string;
     firstName: string;
@@ -70,6 +72,7 @@ export class UserService {
     email: true,
     username: true,
     emailVerified: true,
+    isOnboarded: true,
 
     fullName: true,
     firstName: true,
@@ -416,6 +419,27 @@ export class UserService {
     });
   }
 
+  async completeOnboarding(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (user.isOnboarded) {
+      return { message: 'User already onboarded.' };
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isOnboarded: true },
+    });
+
+    return { message: 'Onboarding complete.' };
+  }
+
   private formatUser(user: UserResponse): FormattedUser {
     const phUpdatedTime = toZonedTime(user.updatedAt, this.timezone);
 
@@ -424,6 +448,7 @@ export class UserService {
       email: user.email,
       username: user.username,
       emailVerified: user.emailVerified,
+      isOnboarded: user.isOnboarded,
       profile: {
         fullName: user.fullName,
         firstName: user.firstName,

@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -16,6 +17,8 @@ import { CreateUserDto, UpdateUserDto } from './dto';
 import { BaseUrl, RequirePermissions } from '../../../common';
 import { PaginationDto } from 'src/common';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
+import * as express from 'express';
+import { User } from '@prisma/client';
 
 @UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('users')
@@ -75,5 +78,12 @@ export class UserController {
       message: 'User archived successfully.',
       data,
     };
+  }
+
+  @Patch('onboard')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
+  async onboard(@Req() req: express.Request) {
+    return this.usersService.completeOnboarding((req.user as User).id);
   }
 }
