@@ -31,6 +31,6 @@ import { MailModule } from '../mail/mail.module';
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(SlidingSessionMiddleware).forRoutes('*'); // ← runs on every route
+    consumer.apply(SlidingSessionMiddleware).forRoutes('*path');
   }
 }

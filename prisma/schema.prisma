@@ -134,6 +134,8 @@ model User {
   resetPasswordToken  String?
   resetPasswordExpiry DateTime?
   refreshToken        String? // store hashed refresh token
+  oauthToken          String?
+  oauthTokenExpiry    DateTime?
   isOnboarded         Boolean   @default(false)
 
   // Relations (foreign keys and their relations)

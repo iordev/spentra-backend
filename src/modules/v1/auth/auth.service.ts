@@ -174,6 +174,24 @@ export class AuthService {
     return this.formatUser(user);
   }
 
+  async logoutWithToken(token: string | undefined, res: Response) {
+    try {
+      if (token) {
+        const payload = this.jwtService.decode(token) as { sub: number } | null;
+        if (payload?.sub) {
+          await this.prisma.user.update({
+            where: { id: payload.sub },
+            data: { refreshToken: null },
+          });
+        }
+      }
+    } catch {
+      // ignore errors
+    } finally {
+      this.clearTokenCookies(res);
+    }
+  }
+
   async register(dto: RegisterDto) {
     // 1. Check email not taken
     const existingEmail = await this.prisma.user.findUnique({
@@ -319,10 +337,25 @@ export class AuthService {
     await this.hashAndStoreRefreshToken(user.id, refreshToken);
     this.setTokenCookies(res, accessToken, refreshToken);
 
-    return {
-      message: 'Registration successful.',
-      data: { userId: user.id },
-    };
+    const fullUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            permissions: { select: { id: true, name: true } },
+          },
+        },
+        occupation: { select: { id: true, name: true } },
+        currency: { select: { id: true, name: true, code: true, symbol: true } },
+        timezone: { select: { id: true, name: true } },
+        country: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    return this.formatUser(fullUser as LoginUserPayload);
   }
 
   async refresh(user: User, res: Response) {
@@ -335,15 +368,30 @@ export class AuthService {
     return { message: 'Session extended.' };
   }
 
-  async logout(userId: number, res: Response) {
-    // Clear refresh token from DB
-    await this.prisma.user.update({
+  async me(userId: number) {
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      data: { refreshToken: null },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            permissions: { select: { id: true, name: true } },
+          },
+        },
+        occupation: { select: { id: true, name: true } },
+        currency: { select: { id: true, name: true, code: true, symbol: true } },
+        timezone: { select: { id: true, name: true } },
+        country: { select: { id: true, name: true, code: true } },
+      },
     });
 
-    // Clear cookies
-    this.clearTokenCookies(res);
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    return this.formatUser(user as LoginUserPayload);
   }
 
   async changePassword(userId: number, dto: ChangePasswordDto) {
@@ -579,16 +627,80 @@ export class AuthService {
     res.cookie('access_token', accessToken, {
       httpOnly: true, // ← JS cannot access this cookie
       secure: isProd, // ← HTTPS only in production
-      sameSite: 'strict', // ← CSRF protection
+      sameSite: 'lax', // ← CSRF protection
       maxAge, // ← expires in 30 mins
     });
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge, // ← same 30-min window
     });
+  }
+
+  async generateOAuthToken(userId: number): Promise<string> {
+    // 1. Generate random token
+    const token = randomBytes(32).toString('hex');
+
+    // 2. Store in DB with 5 min expiry
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        oauthToken: token,
+        oauthTokenExpiry: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+      },
+    });
+
+    return token;
+  }
+
+  async exchangeOAuthToken(token: string, res: Response) {
+    // 1. Find user by token
+    const user = await this.prisma.user.findFirst({
+      where: { oauthToken: token },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            permissions: { select: { id: true, name: true } },
+          },
+        },
+        occupation: { select: { id: true, name: true } },
+        currency: { select: { id: true, name: true, code: true, symbol: true } },
+        timezone: { select: { id: true, name: true } },
+        country: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    // 2. Token not found
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired OAuth token.');
+    }
+
+    // 3. Token expired
+    if (!user.oauthTokenExpiry || user.oauthTokenExpiry < new Date()) {
+      throw new UnauthorizedException('OAuth token has expired. Please try again.');
+    }
+
+    // 4. Clear token (one-time use)
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        oauthToken: null,
+        oauthTokenExpiry: null,
+      },
+    });
+
+    // 5. Set JWT cookies
+    const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);
+    await this.hashAndStoreRefreshToken(user.id, refreshToken);
+    this.setTokenCookies(res, accessToken, refreshToken);
+
+    // 6. Return user data
+    return this.formatUser(user as LoginUserPayload);
   }
 
   // ─── Logout ──────────────────────────────────────────────────────────────────

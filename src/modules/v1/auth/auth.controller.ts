@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -87,13 +88,10 @@ export class AuthController {
     }
 
     // Existing user — issue JWT and redirect to dashboard
-    await this.authService.oauthLogin(result.user, res);
-    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`);
-    return res.json({
-      isNewUser: false,
-      message: 'Login successful.',
-      user: result.user, // ← add this to see the user data
-    });
+    const oauthToken = await this.authService.generateOAuthToken(result.user.id);
+    return res.redirect(
+      `${this.configService.get<string>('FRONTEND_URL')}/oauth/callback?token=${oauthToken}`,
+    );
   }
 
   // ─── Microsoft OAuth ──────────────────────────────────────────────────────────
@@ -134,13 +132,10 @@ export class AuthController {
     }
 
     // Existing user — issue JWT and redirect to dashboard
-    await this.authService.oauthLogin(result.user, res);
-    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`)
-    return res.json({
-      isNewUser: false,
-      message: 'Login successful.',
-      user: result.user,
-    });
+    const oauthToken = await this.authService.generateOAuthToken(result.user.id);
+    return res.redirect(
+      `${this.configService.get<string>('FRONTEND_URL')}/oauth/callback?token=${oauthToken}`,
+    );
   }
 
   // ─── Facebook OAuth ───────────────────────────────────────────────────────────
@@ -181,13 +176,10 @@ export class AuthController {
     }
 
     // Existing user — issue JWT and redirect to dashboard
-    await this.authService.oauthLogin(result.user, res);
-    // return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/dashboard`)
-    return res.json({
-      isNewUser: false,
-      message: 'Login successful.',
-      user: result.user,
-    });
+    const oauthToken = await this.authService.generateOAuthToken(result.user.id);
+    return res.redirect(
+      `${this.configService.get<string>('FRONTEND_URL')}/oauth/callback?token=${oauthToken}`,
+    );
   }
 
   @Post('oauth-register')
@@ -231,21 +223,21 @@ export class AuthController {
     return this.authService.refresh(req.user as User, res);
   }
 
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
+  async me(@Req() req: express.Request) {
+    return this.authService.me((req.user as User).id);
+  }
+
   // ─── Logout ──────────────────────────────────────────────────────────────────
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAccessGuard)
   async logout(@Req() req: express.Request, @Res({ passthrough: true }) res: express.Response) {
-    if (!req.user) {
-      throw new UnauthorizedException('User not found.');
-    }
-    await this.authService.logout((req.user as User).id, res);
-
-    return {
-      message: 'Logged out successfully.',
-      data: null,
-    };
+    const token = req.cookies?.access_token as string | undefined;
+    await this.authService.logoutWithToken(token, res);
+    return { message: 'Logged out successfully.' };
   }
 
   @Patch('change-password')
@@ -300,5 +292,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async checkUsername(@Body() dto: CheckUsernameDto) {
     return this.authService.checkUsername(dto.username);
+  }
+
+  @Get('oauth/exchange')
+  @HttpCode(HttpStatus.OK)
+  async exchangeOAuthToken(
+    @Query('token') token: string,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    return this.authService.exchangeOAuthToken(token, res);
   }
 }
