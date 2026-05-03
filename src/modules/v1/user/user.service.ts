@@ -429,15 +429,13 @@ export class UserService {
     }
 
     if (user.isOnboarded) {
-      return { message: 'User already onboarded.' };
+      return;
     }
 
     await this.prisma.user.update({
       where: { id: userId },
       data: { isOnboarded: true },
     });
-
-    return { message: 'Onboarding complete.' };
   }
 
   private formatUser(user: UserResponse): FormattedUser {

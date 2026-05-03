@@ -80,7 +80,7 @@ export class AuthController {
         provider: 'google',
       }).toString();
 
-      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/register?${query}`);
+      return res.redirect(`${this.configService.get<string>('FRONTEND_URL')}/signup?${query}`);
     }
 
     if (!result.user) {

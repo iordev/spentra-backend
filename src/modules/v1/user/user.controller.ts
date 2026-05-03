@@ -20,11 +20,11 @@ import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
 import * as express from 'express';
 import { User } from '@prisma/client';
 
-@UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get()
   @RequirePermissions('user:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
@@ -35,6 +35,7 @@ export class UserController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Get(':id')
   @RequirePermissions('user:display')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -45,6 +46,7 @@ export class UserController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Post()
   @RequirePermissions('user:create')
   @HttpCode(HttpStatus.CREATED)
@@ -55,6 +57,17 @@ export class UserController {
       data,
     };
   }
+
+  @UseGuards(JwtAccessGuard)
+  @Patch('onboard')
+  @HttpCode(HttpStatus.OK)
+  async onboard(@Req() req: express.Request) {
+    const user = req.user as { id: number; email: string };
+    await this.usersService.completeOnboarding(user.id);
+    return { message: 'Onboarding complete.' };
+  }
+
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('user:update')
   @HttpCode(HttpStatus.OK)
@@ -70,6 +83,7 @@ export class UserController {
     };
   }
 
+  @UseGuards(JwtAccessGuard, PermissionsGuard)
   @Patch(':id/archive')
   @RequirePermissions('user:archive')
   async archive(@Param('id', ParseIntPipe) id: number) {
@@ -78,12 +92,5 @@ export class UserController {
       message: 'User archived successfully.',
       data,
     };
-  }
-
-  @Patch('onboard')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAccessGuard)
-  async onboard(@Req() req: express.Request) {
-    return this.usersService.completeOnboarding((req.user as User).id);
   }
 }

@@ -18,7 +18,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
     const statusCode = response.statusCode;
 
     return next.handle().pipe(
-      map((controllerReturned) => {
+      map((controllerReturned): Response<T> => {
         const isArray = Array.isArray(controllerReturned);
         const isPaginated =
           !isArray &&
@@ -28,7 +28,20 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
 
         const data: unknown = isPaginated
           ? (controllerReturned as Record<string, unknown>).data
-          : controllerReturned;
+          : (() => {
+              // If the only key is message, return null for data
+              if (
+                !isArray &&
+                controllerReturned !== null &&
+                typeof controllerReturned === 'object' &&
+                Object.keys(controllerReturned as Record<string, unknown>).every(
+                  (k) => k === 'message' || k === 'meta' || k === 'links',
+                )
+              ) {
+                return null;
+              }
+            return controllerReturned as unknown;
+            })();
 
         const message =
           (!isArray &&
@@ -58,6 +71,6 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
           timestamp: new Date().toISOString(),
         } as Response<T>;
       }),
-    ) as Observable<Response<T>>;
+    );
   }
 }
