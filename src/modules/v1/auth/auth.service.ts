@@ -28,16 +28,14 @@ type LoginUserPayload = Prisma.UserGetPayload<{
   include: {
     role: {
       select: {
-        id: true;
         name: true;
-        description: true;
-        permissions: { select: { id: true; name: true } };
+        permissions: { select: { name: true } };
       };
     };
-    occupation: { select: { id: true; name: true } };
-    currency: { select: { id: true; name: true; code: true; symbol: true } };
-    timezone: { select: { id: true; name: true } };
-    country: { select: { id: true; name: true; code: true } };
+    occupation: { select: { name: true } };
+    currency: { select: { code: true; symbol: true } };
+    timezone: { select: { name: true } };
+    country: { select: { name: true; code: true } };
   };
 }>;
 
@@ -50,6 +48,21 @@ export class AuthService {
     private mailService: MailService,
     private readonly prismaValidator: PrismaValidatorService,
   ) {}
+
+  // ─── Shared Prisma Include ────────────────────────────────────────────────────
+
+  private readonly userInclude = {
+    role: {
+      select: {
+        name: true,
+        permissions: { select: { name: true } },
+      },
+    },
+    occupation: { select: { name: true } },
+    currency: { select: { code: true, symbol: true } },
+    timezone: { select: { name: true } },
+    country: { select: { name: true, code: true } },
+  } satisfies Prisma.UserInclude;
 
   async getOAuthProfile(data: {
     email: string;
@@ -80,104 +93,38 @@ export class AuthService {
     };
   }
 
-  async oauthLogin(user: User, res: express.Response) {
-    const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);
-    await this.hashAndStoreRefreshToken(user.id, refreshToken);
-    this.setTokenCookies(res, accessToken, refreshToken);
-  }
-
   // ─── Private Helpers ────────────────────────────────────────────────────────
 
   async login(loginDto: LoginDto, res: Response) {
     const { identifier, password } = loginDto;
 
-    // 1. Find user by email or username
+    // 1. Find user — no include needed, just auth fields
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [{ email: identifier }, { username: identifier }],
       },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        occupation: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        currency: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            symbol: true,
-          },
-        },
-        timezone: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        country: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-      },
     });
 
-    // 2. User not found
-    if (!user) {
-      throw new NotFoundException('No account found with that email or username.');
-    }
-
-    // 3. Soft deleted account
-    if (user.deletedAt) {
-      throw new UnauthorizedException('Account no longer exists.');
-    }
-
-    // 4. Email not verified  ← add this
-    if (!user.emailVerified) {
+    if (!user) throw new NotFoundException('No account found with that email or username.');
+    if (user.deletedAt) throw new UnauthorizedException('Account no longer exists.');
+    if (!user.emailVerified)
       throw new UnauthorizedException('Please verify your email before logging in.');
-    }
-
-    // 5. OAuth-only account (no password set)
-    if (!user.password) {
+    if (!user.password)
       throw new UnauthorizedException('This account uses OAuth. Please login with your provider.');
-    }
 
-    // 6. Wrong password
     const passwordMatches = await bcrypt.compare(password, user.password);
-    if (!passwordMatches) {
-      throw new UnauthorizedException('Incorrect password.');
-    }
+    if (!passwordMatches) throw new UnauthorizedException('Incorrect password.');
 
-    // 7. Generate tokens, store hash, set cookies
+    // 2. Issue tokens only — no user data returned
     const { accessToken, refreshToken } = await this.generateTokens(user.id, user.email);
     await this.hashAndStoreRefreshToken(user.id, refreshToken);
     this.setTokenCookies(res, accessToken, refreshToken);
-
-    return this.formatUser(user);
   }
 
   async logoutWithToken(token: string | undefined, res: Response) {
     try {
       if (token) {
-        const payload = this.jwtService.decode(token) as { sub: number } | null;
+        const payload: { sub: number } | null = this.jwtService.decode(token);
         if (payload?.sub) {
           await this.prisma.user.update({
             where: { id: payload.sub },
@@ -337,25 +284,7 @@ export class AuthService {
     await this.hashAndStoreRefreshToken(user.id, refreshToken);
     this.setTokenCookies(res, accessToken, refreshToken);
 
-    const fullUser = await this.prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            permissions: { select: { id: true, name: true } },
-          },
-        },
-        occupation: { select: { id: true, name: true } },
-        currency: { select: { id: true, name: true, code: true, symbol: true } },
-        timezone: { select: { id: true, name: true } },
-        country: { select: { id: true, name: true, code: true } },
-      },
-    });
-
-    return this.formatUser(fullUser as LoginUserPayload);
+    return { message: 'Registration successful.' };
   }
 
   async refresh(user: User, res: Response) {
@@ -371,25 +300,10 @@ export class AuthService {
   async me(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            permissions: { select: { id: true, name: true } },
-          },
-        },
-        occupation: { select: { id: true, name: true } },
-        currency: { select: { id: true, name: true, code: true, symbol: true } },
-        timezone: { select: { id: true, name: true } },
-        country: { select: { id: true, name: true, code: true } },
-      },
+      include: this.userInclude,
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found.');
-    }
+    if (!user) throw new UnauthorizedException('User not found.');
 
     return this.formatUser(user as LoginUserPayload);
   }
@@ -699,8 +613,7 @@ export class AuthService {
     await this.hashAndStoreRefreshToken(user.id, refreshToken);
     this.setTokenCookies(res, accessToken, refreshToken);
 
-    // 6. Return user data
-    return this.formatUser(user as LoginUserPayload);
+    return { message: 'OAuth login successful.' };
   }
 
   // ─── Logout ──────────────────────────────────────────────────────────────────
@@ -720,6 +633,8 @@ export class AuthService {
       resetPasswordToken: _resetPasswordToken,
       resetPasswordExpiry: _resetPasswordExpiry,
       deletedAt: _deletedAt,
+      oauthToken: _oauthToken, // ← add this
+      oauthTokenExpiry: _oauthTokenExpiry, // ← add this
       roleId: _roleId,
       occupationId: _occupationId,
       currencyId: _currencyId,
@@ -728,6 +643,13 @@ export class AuthService {
       ...safeUser
     } = user;
 
-    return safeUser;
+    return {
+      ...safeUser,
+      // Flatten permissions to string array — no IDs needed by frontend
+      role: {
+        name: user.role?.name,
+        permissions: user.role?.permissions.map((p) => p.name) ?? [],
+      },
+    };
   }
 }

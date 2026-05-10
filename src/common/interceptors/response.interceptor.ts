@@ -20,54 +20,36 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
     return next.handle().pipe(
       map((controllerReturned): Response<T> => {
         const isArray = Array.isArray(controllerReturned);
-        const isPaginated =
-          !isArray &&
-          controllerReturned !== null &&
-          typeof controllerReturned === 'object' &&
-          'data' in controllerReturned;
+        const isObject =
+          !isArray && controllerReturned !== null && typeof controllerReturned === 'object';
+        const raw = isObject ? (controllerReturned as Record<string, unknown>) : null;
+        const data: unknown =
+          isObject && raw !== null && 'data' in raw
+            ? raw.data
+            : (() => {
+                if (
+                  isObject &&
+                  raw !== null &&
+                  Object.keys(raw).every((k) => k === 'message' || k === 'meta' || k === 'links')
+                ) {
+                  return null;
+                }
+                return controllerReturned as unknown;
+              })();
 
-        const data: unknown = isPaginated
-          ? (controllerReturned as Record<string, unknown>).data
-          : (() => {
-              // If the only key is message, return null for data
-              if (
-                !isArray &&
-                controllerReturned !== null &&
-                typeof controllerReturned === 'object' &&
-                Object.keys(controllerReturned as Record<string, unknown>).every(
-                  (k) => k === 'message' || k === 'meta' || k === 'links',
-                )
-              ) {
-                return null;
-              }
-            return controllerReturned as unknown;
-            })();
-
-        const message =
-          (!isArray &&
-            controllerReturned !== null &&
-            typeof controllerReturned === 'object' &&
-            'message' in controllerReturned &&
-            (controllerReturned as Record<string, unknown>).message) ??
-          'Request successful';
+        // ✅ Safely extract message only if it's actually a string
+        const message: string =
+          isObject && raw !== null && typeof raw.message === 'string'
+            ? raw.message
+            : 'Request successful';
 
         return {
           success: true,
           statusCode,
           message,
           data,
-          ...(!isArray &&
-            controllerReturned !== null &&
-            typeof controllerReturned === 'object' &&
-            'meta' in controllerReturned && {
-              meta: (controllerReturned as Record<string, unknown>).meta,
-            }),
-          ...(!isArray &&
-            controllerReturned !== null &&
-            typeof controllerReturned === 'object' &&
-            'links' in controllerReturned && {
-              links: (controllerReturned as Record<string, unknown>).links,
-            }),
+          ...(isObject && raw !== null && 'meta' in raw && { meta: raw.meta }),
+          ...(isObject && raw !== null && 'links' in raw && { links: raw.links }),
           timestamp: new Date().toISOString(),
         } as Response<T>;
       }),

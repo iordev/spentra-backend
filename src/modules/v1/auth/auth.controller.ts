@@ -197,11 +197,8 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
-    const user = await this.authService.login(loginDto, res);
-    return {
-      message: 'Login successful.',
-      data: user,
-    };
+    await this.authService.login(loginDto, res);
+    return { message: 'Login successful.' };
   }
 
   @Post('register')
