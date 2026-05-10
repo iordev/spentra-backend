@@ -30,7 +30,7 @@ import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { CheckUsernameDto } from './dto/check-username.dto';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -223,6 +223,7 @@ export class AuthController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAccessGuard)
+  @SkipThrottle({ auth: true, strict: true })
   async me(@Req() req: express.Request) {
     return this.authService.me((req.user as User).id);
   }

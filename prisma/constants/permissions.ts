@@ -181,10 +181,128 @@ export const DEFAULT_PERMISSIONS = [
     group: 'Country Management',
   },
 
+  // REPORT TEMPLATE MANAGEMENT
+  {
+    name: 'report_template:display',
+    description: 'Allows viewing and browsing report templates',
+    group: 'Report Template Management',
+  },
+  {
+    name: 'report_template:create',
+    description: 'Allows creating new report templates',
+    group: 'Report Template Management',
+  },
+  {
+    name: 'report_template:update',
+    description: 'Allows editing and updating existing report templates',
+    group: 'Report Template Management',
+  },
+  {
+    name: 'report_template:archive',
+    description: 'Allows archiving and removing report templates',
+    group: 'Report Template Management',
+  },
+
+  // EXPENSE CATEGORY MANAGEMENT
+  {
+    name: 'expense_category:display',
+    description: 'Allows viewing and browsing expense categories',
+    group: 'Expense Category Management',
+  },
+  {
+    name: 'expense_category:create',
+    description: 'Allows creating new expense categories',
+    group: 'Expense Category Management',
+  },
+  {
+    name: 'expense_category:update',
+    description: 'Allows editing and updating existing expense categories',
+    group: 'Expense Category Management',
+  },
+  {
+    name: 'expense_category:archive',
+    description: 'Allows archiving and removing expense categories',
+    group: 'Expense Category Management',
+  },
+
+  // INCOME SOURCE MANAGEMENT
+  {
+    name: 'income_source:display',
+    description: 'Allows viewing and browsing income sources',
+    group: 'Income Source Management',
+  },
+  {
+    name: 'income_source:create',
+    description: 'Allows creating new income sources',
+    group: 'Income Source Management',
+  },
+  {
+    name: 'income_source:update',
+    description: 'Allows editing and updating existing income sources',
+    group: 'Income Source Management',
+  },
+  {
+    name: 'income_source:archive',
+    description: 'Allows archiving and removing income sources',
+    group: 'Income Source Management',
+  },
+
+  // PAYMENT METHOD MANAGEMENT
+  {
+    name: 'payment_method:display',
+    description: 'Allows viewing and browsing payment methods',
+    group: 'Payment Method Management',
+  },
+  {
+    name: 'payment_method:create',
+    description: 'Allows creating new payment methods',
+    group: 'Payment Method Management',
+  },
+  {
+    name: 'payment_method:update',
+    description: 'Allows editing and updating existing payment methods',
+    group: 'Payment Method Management',
+  },
+  {
+    name: 'payment_method:archive',
+    description: 'Allows archiving and removing payment methods',
+    group: 'Payment Method Management',
+  },
+
+  // BANK MANAGEMENT
+  {
+    name: 'bank:display',
+    description: 'Allows viewing and browsing banks',
+    group: 'Bank Management',
+  },
+  { name: 'bank:create', description: 'Allows creating new banks', group: 'Bank Management' },
+  {
+    name: 'bank:update',
+    description: 'Allows editing and updating existing banks',
+    group: 'Bank Management',
+  },
+  {
+    name: 'bank:archive',
+    description: 'Allows archiving and removing banks',
+    group: 'Bank Management',
+  },
+
   //DASHBOARD MANAGEMENT
   {
     name: 'dashboard:display',
     description: 'Allows viewing the main dashboard with system overview and analytics',
     group: 'Dashboard Management',
+  },
+
+  // REPORT MANAGEMENT
+  {
+    name: 'report:display',
+    description: 'Allows viewing and generating reports based on available report templates',
+    group: 'Report Management',
+  },
+  {
+    name: 'report:create',
+    description: 'Allows creating and exporting new reports',
+    group: 'Report Management',
   },
 ];
