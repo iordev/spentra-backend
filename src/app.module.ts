@@ -47,6 +47,12 @@ import { MailModule } from './modules/v1/mail/mail.module';
         ttl: 60000,
         limit: 120,
       },
+
+      {
+        name: 'general', // ✅ add this for read-heavy endpoints
+        ttl: 60000,
+        limit: 60, // 60 req/min per user
+      },
     ]),
     PrismaModule,
     PermissionModule,

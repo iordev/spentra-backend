@@ -15,12 +15,14 @@ import { PermissionService } from './permission.service';
 import { BaseUrl, PaginationDto, RequirePermissions } from '../../../common';
 import { CreatePermissionDto, UpdatePermissionDto } from './dto';
 import { JwtAccessGuard, PermissionsGuard } from '../auth/guards';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('permissions')
 export class PermissionController {
   constructor(private readonly permissionsService: PermissionService) {}
 
+  @Throttle({ general: { limit: 60, ttl: 60000 } })
   @Get()
   @RequirePermissions('permission:display')
   async findAll(@Query() query: PaginationDto, @BaseUrl() baseUrl: string) {
